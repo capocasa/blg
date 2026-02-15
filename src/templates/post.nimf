@@ -1,0 +1,40 @@
+#? stdtmpl | standard
+#proc postTemplate*(title, content: string, menuItems: seq[string], createdAt, modifiedAt: string): string =
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <ul>
+#  for item in menuItems:
+#    if item == "index":
+      <li><a href="index.html">Home</a></li>
+#    elif item.startsWith("tag:"):
+      <li><a href="${item[4..^1]}/index.html">${item[4..^1]}</a></li>
+#    else:
+      <li><a href="${item}.html">${item}</a></li>
+#    end if
+#    end for
+    </ul>
+  </nav>
+  <main>
+    <article class="post">
+      <header>
+        <h1>${title}</h1>
+        <time datetime="${createdAt}">${createdAt}</time>
+      </header>
+      <div class="content">
+${content}
+      </div>
+      <footer>
+        <p class="modified">Last updated: ${modifiedAt}</p>
+      </footer>
+    </article>
+  </main>
+</body>
+</html>
