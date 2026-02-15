@@ -3,7 +3,7 @@
 ## One-shot blog generator from markdown files.
 ## Tags are implemented as subdirectories with symlinks.
 
-import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt]
+import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars]
 import blg/[renderer, types]
 
 proc loadMenuList(path: string): seq[string] =
@@ -88,8 +88,8 @@ proc buildSite*(contentDir, outputDir, cacheDir: string) =
 
   echo "Built: ", sources.len, " files, ", tags.len, " tags"
 
-proc loadConfig(path: string): Table[string, string] =
-  ## Load config file (key=value format, same names as long params)
+proc loadEnvFile(path: string) =
+  ## Load .env file into environment variables
   if not fileExists(path):
     return
   for line in lines(path):
@@ -100,7 +100,8 @@ proc loadConfig(path: string): Table[string, string] =
     if eq > 0:
       let key = trimmed[0..<eq].strip()
       let val = trimmed[eq+1..^1].strip()
-      result[key] = val
+      if not existsEnv(key):  # don't override existing env
+        putEnv(key, val)
 
 proc usage() =
   echo """blg - Blog Generator
@@ -110,14 +111,13 @@ Usage: blg -i <input-dir> [options]
 Options:
   -i, --input <dir>    Input directory (required)
   -o, --output <dir>   Output directory (default: current directory)
-  -c, --config <file>  Config file (default: blg.conf)
   --cache <dir>        Cache directory (default: .blg-cache)
+  -e, --env <file>     Env file (default: .env)
   -h, --help           Show this help
 
-Config file format (same keys as long options):
-  input=path/to/input
-  output=path/to/output
-  cache=.blg-cache"""
+Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE
+
+Precedence: option > env var > .env file > default"""
   quit(0)
 
 when isMainModule:
@@ -125,28 +125,28 @@ when isMainModule:
     inputDir = ""
     outputDir = getCurrentDir()
     cacheDir = ".blg-cache"
-    configFile = "blg.conf"
+    envFile = ".env"
     expectVal = ""
 
-  # First pass: find config file option
+  # First pass: find env file option
   for kind, key, val in getopt():
-    if expectVal == "config":
-      configFile = key
+    if expectVal == "env":
+      envFile = key
       expectVal = ""
       continue
     if kind in {cmdShortOption, cmdLongOption}:
-      if val != "" and key in ["c", "config"]:
-        configFile = val
-      elif val == "" and key in ["c", "config"]:
-        expectVal = "config"
+      if val != "" and key in ["e", "env"]:
+        envFile = val
+      elif val == "" and key in ["e", "env"]:
+        expectVal = "env"
 
-  # Load config file
-  let conf = loadConfig(configFile)
-  if "input" in conf: inputDir = conf["input"]
-  if "output" in conf: outputDir = conf["output"]
-  if "cache" in conf: cacheDir = conf["cache"]
+  # Load .env file, then read env vars
+  loadEnvFile(envFile)
+  if existsEnv("BLG_INPUT"): inputDir = getEnv("BLG_INPUT")
+  if existsEnv("BLG_OUTPUT"): outputDir = getEnv("BLG_OUTPUT")
+  if existsEnv("BLG_CACHE"): cacheDir = getEnv("BLG_CACHE")
 
-  # Second pass: CLI args override config
+  # Second pass: CLI args override env
   expectVal = ""
   for kind, key, val in getopt():
     if expectVal != "":
@@ -154,7 +154,7 @@ when isMainModule:
       of "o": outputDir = key
       of "i": inputDir = key
       of "cache": cacheDir = key
-      of "config": discard  # already handled
+      of "env": discard  # already handled
       else: discard
       expectVal = ""
       continue
@@ -166,14 +166,14 @@ when isMainModule:
         of "o", "output": outputDir = val
         of "i", "input": inputDir = val
         of "cache": cacheDir = val
-        of "c", "config": discard  # already handled
+        of "e", "env": discard  # already handled
         else: echo "Unknown option: ", key; quit(1)
       else:
         case key
         of "o", "output": expectVal = "o"
         of "i", "input": expectVal = "i"
         of "cache": expectVal = "cache"
-        of "c", "config": expectVal = "config"
+        of "e", "env": expectVal = "env"
         of "h", "help": usage()
         else: echo "Unknown option: ", key; quit(1)
     of cmdArgument:
@@ -181,7 +181,7 @@ when isMainModule:
     of cmdEnd: discard
 
   if inputDir == "":
-    echo "Error: input directory is required (-i <dir> or input= in config)"
+    echo "Error: input directory is required (-i <dir> or BLG_INPUT)"
     quit(1)
 
   buildSite(inputDir, outputDir, cacheDir)
