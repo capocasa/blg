@@ -51,7 +51,7 @@ proc renderPage*(src: SourceFile, menuItems: seq[string]): string =
 proc renderPost*(src: SourceFile, menuItems: seq[string]): string =
   postTemplate(src.title, src.content, menuItems, formatDate(src.createdAt), formatDate(src.modifiedAt))
 
-proc renderList*(name: string, posts: seq[SourceFile], menuItems: seq[string]): string =
+proc renderList*(name: string, posts: seq[SourceFile], menuItems: seq[string], page, numPages: int, baseUrl: string): string =
   var items: seq[tuple[title, preview, url, date: string]]
   for post in posts:
     items.add((
@@ -60,4 +60,4 @@ proc renderList*(name: string, posts: seq[SourceFile], menuItems: seq[string]): 
       url: post.title & ".html",
       date: formatDate(post.createdAt)
     ))
-  listTemplate(name, items, menuItems)
+  listTemplate(name, items, menuItems, page, numPages, baseUrl)

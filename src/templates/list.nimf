@@ -1,11 +1,13 @@
 #? stdtmpl | standard
-#proc listTemplate*(name: string, items: seq[tuple[title, preview, url, date: string]], menuItems: seq[string]): string =
+#proc listTemplate*(name: string, items: seq[tuple[title, preview, url, date: string]], menuItems: seq[string], p, n: int, baseUrl: string): string =
+#  let prevUrl = if p == 2: baseUrl & "index.html" else: baseUrl & "index-" & $(p-1) & ".html"
+#  let nextUrl = baseUrl & "index-" & $(p+1) & ".html"
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${name}</title>
+  <title>${name}#if n > 1: - Page ${p}#end if</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -37,6 +39,17 @@ ${item.preview}
       </li>
 #  end for
     </ul>
+#  if n > 1:
+    <nav class="pagination">
+#    if p > 1:
+      <a href="${prevUrl}" rel="prev">Previous</a>
+#    end if
+      <span>Page ${p} of ${n}</span>
+#    if p < n:
+      <a href="${nextUrl}" rel="next">Next</a>
+#    end if
+    </nav>
+#  end if
   </main>
 </body>
 </html>

@@ -45,7 +45,22 @@ proc needsRegen(outPath: string, srcMtime: Time): bool =
     return true
   getFileInfo(outPath).lastWriteTime < srcMtime
 
-proc buildSite*(contentDir, outputDir, cacheDir: string) =
+proc paginate(items: seq[SourceFile], perPage: int): seq[seq[SourceFile]] =
+  ## Split items into pages
+  if items.len == 0:
+    result.add(@[])
+    return
+  var i = 0
+  while i < items.len:
+    result.add(items[i ..< min(i + perPage, items.len)])
+    i += perPage
+
+proc listPagePath(base: string, page: int): string =
+  ## Generate path for a list page: index.html, index-2.html, etc.
+  if page == 1: base / "index.html"
+  else: base / "index-" & $page & ".html"
+
+proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
   ## Build the entire site, only regenerating what changed
   let menuListPath = contentDir / "menu.list"
   let tagsDir = contentDir / "tags"
@@ -89,28 +104,33 @@ proc buildSite*(contentDir, outputDir, cacheDir: string) =
         postsBuilt += 1
       echo "  ", outPath
 
-  # Generate index if any post changed, menu changed, or output missing
-  let indexPath = outputDir / "index.html"
+  # Generate paginated index
   let postsChanged = posts.anyIt(it.title in changed)
-  if postsChanged or needsRegen(indexPath, menuMtime):
-    writeFile(indexPath, renderList("index", posts, menuItems))
-    echo "  ", indexPath
+  let indexPages = paginate(posts, perPage)
+  var listsBuilt = 0
+  for p, pagePosts in indexPages:
+    let outPath = listPagePath(outputDir, p + 1)
+    if postsChanged or needsRegen(outPath, menuMtime):
+      writeFile(outPath, renderList("index", pagePosts, menuItems, p + 1, indexPages.len, ""))
+      echo "  ", outPath
+      listsBuilt += 1
 
-  # Generate tag pages (only if tagged posts changed or output missing)
-  var tagsBuilt = 0
+  # Generate paginated tag pages
   for tagName, taggedFiles in tags:
     let tagSet = taggedFiles.toHashSet
     let tagPosts = posts.filterIt(it.title in tagSet)
     let tagChanged = tagPosts.anyIt(it.title in changed)
     let tagDir = outputDir / tagName
-    let tagIndexPath = tagDir / "index.html"
-    if tagChanged or needsRegen(tagIndexPath, menuMtime):
-      createDir(tagDir)
-      writeFile(tagIndexPath, renderList(tagName, tagPosts, menuItems))
-      echo "  ", tagIndexPath
-      tagsBuilt += 1
+    let tagPages = paginate(tagPosts, perPage)
+    createDir(tagDir)
+    for p, pagePosts in tagPages:
+      let outPath = listPagePath(tagDir, p + 1)
+      if tagChanged or needsRegen(outPath, menuMtime):
+        writeFile(outPath, renderList(tagName, pagePosts, menuItems, p + 1, tagPages.len, tagName & "/"))
+        echo "  ", outPath
+        listsBuilt += 1
 
-  echo "Built: ", pagesBuilt, " pages, ", postsBuilt, " posts, ", tagsBuilt, " tags (", changed.len, " sources changed)"
+  echo "Built: ", pagesBuilt, " pages, ", postsBuilt, " posts, ", listsBuilt, " lists (", changed.len, " sources changed)"
 
 proc loadEnvFile(path: string) =
   ## Load .env file into environment variables
@@ -136,10 +156,11 @@ Options:
   -i, --input <dir>    Input directory (required)
   -o, --output <dir>   Output directory (default: current directory)
   --cache <dir>        Cache directory (default: .blg-cache)
+  --per-page <n>       Items per page (default: 20)
   -e, --env <file>     Env file (default: .env)
   -h, --help           Show this help
 
-Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE
+Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE
 
 Precedence: option > env var > .env file > default"""
   quit(0)
@@ -149,6 +170,7 @@ when isMainModule:
     inputDir = ""
     outputDir = getCurrentDir()
     cacheDir = ".blg-cache"
+    perPage = 20
     envFile = ".env"
     expectVal = ""
 
@@ -169,6 +191,7 @@ when isMainModule:
   if existsEnv("BLG_INPUT"): inputDir = getEnv("BLG_INPUT")
   if existsEnv("BLG_OUTPUT"): outputDir = getEnv("BLG_OUTPUT")
   if existsEnv("BLG_CACHE"): cacheDir = getEnv("BLG_CACHE")
+  if existsEnv("BLG_PER_PAGE"): perPage = parseInt(getEnv("BLG_PER_PAGE"))
 
   # Second pass: CLI args override env
   expectVal = ""
@@ -178,6 +201,7 @@ when isMainModule:
       of "o": outputDir = key
       of "i": inputDir = key
       of "cache": cacheDir = key
+      of "per-page": perPage = parseInt(key)
       of "env": discard  # already handled
       else: discard
       expectVal = ""
@@ -190,6 +214,7 @@ when isMainModule:
         of "o", "output": outputDir = val
         of "i", "input": inputDir = val
         of "cache": cacheDir = val
+        of "per-page": perPage = parseInt(val)
         of "e", "env": discard  # already handled
         else: echo "Unknown option: ", key; quit(1)
       else:
@@ -197,6 +222,7 @@ when isMainModule:
         of "o", "output": expectVal = "o"
         of "i", "input": expectVal = "i"
         of "cache": expectVal = "cache"
+        of "per-page": expectVal = "per-page"
         of "e", "env": expectVal = "env"
         of "h", "help": usage()
         else: echo "Unknown option: ", key; quit(1)
@@ -208,4 +234,4 @@ when isMainModule:
     echo "Error: input directory is required (-i <dir> or BLG_INPUT)"
     quit(1)
 
-  buildSite(inputDir, outputDir, cacheDir)
+  buildSite(inputDir, outputDir, cacheDir, perPage)
