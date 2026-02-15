@@ -105,24 +105,24 @@ proc loadConfig(path: string): Table[string, string] =
 proc usage() =
   echo """blg - Blog Generator
 
-Usage: blg -c <content-dir> [options]
+Usage: blg -i <input-dir> [options]
 
 Options:
-  -c, --content <dir>  Content directory (required)
+  -i, --input <dir>    Input directory (required)
   -o, --output <dir>   Output directory (default: current directory)
+  -c, --config <file>  Config file (default: blg.conf)
   --cache <dir>        Cache directory (default: .blg-cache)
-  --config <file>      Config file (default: blg.conf)
   -h, --help           Show this help
 
 Config file format (same keys as long options):
-  content=path/to/content
+  input=path/to/input
   output=path/to/output
   cache=.blg-cache"""
   quit(0)
 
 when isMainModule:
   var
-    contentDir = ""
+    inputDir = ""
     outputDir = getCurrentDir()
     cacheDir = ".blg-cache"
     configFile = "blg.conf"
@@ -135,14 +135,14 @@ when isMainModule:
       expectVal = ""
       continue
     if kind in {cmdShortOption, cmdLongOption}:
-      if val != "" and key == "config":
+      if val != "" and key in ["c", "config"]:
         configFile = val
-      elif val == "" and key == "config":
+      elif val == "" and key in ["c", "config"]:
         expectVal = "config"
 
   # Load config file
   let conf = loadConfig(configFile)
-  if "content" in conf: contentDir = conf["content"]
+  if "input" in conf: inputDir = conf["input"]
   if "output" in conf: outputDir = conf["output"]
   if "cache" in conf: cacheDir = conf["cache"]
 
@@ -152,7 +152,7 @@ when isMainModule:
     if expectVal != "":
       case expectVal
       of "o": outputDir = key
-      of "c": contentDir = key
+      of "i": inputDir = key
       of "cache": cacheDir = key
       of "config": discard  # already handled
       else: discard
@@ -164,24 +164,24 @@ when isMainModule:
       if val != "":
         case key
         of "o", "output": outputDir = val
-        of "c", "content": contentDir = val
+        of "i", "input": inputDir = val
         of "cache": cacheDir = val
-        of "config": discard  # already handled
+        of "c", "config": discard  # already handled
         else: echo "Unknown option: ", key; quit(1)
       else:
         case key
         of "o", "output": expectVal = "o"
-        of "c", "content": expectVal = "c"
+        of "i", "input": expectVal = "i"
         of "cache": expectVal = "cache"
-        of "config": expectVal = "config"
+        of "c", "config": expectVal = "config"
         of "h", "help": usage()
         else: echo "Unknown option: ", key; quit(1)
     of cmdArgument:
       echo "Unexpected argument: ", key; quit(1)
     of cmdEnd: discard
 
-  if contentDir == "":
-    echo "Error: content directory is required (-c <dir> or content= in config)"
+  if inputDir == "":
+    echo "Error: input directory is required (-i <dir> or input= in config)"
     quit(1)
 
-  buildSite(contentDir, outputDir, cacheDir)
+  buildSite(inputDir, outputDir, cacheDir)
