@@ -7,20 +7,22 @@ include "../templates/page.nimf"
 include "../templates/post.nimf"
 include "../templates/list.nimf"
 
-proc renderMarkdown*(path: string, cacheDir: string): string =
+proc renderMarkdown*(path: string, cacheDir: string): tuple[content: string, changed: bool] =
   ## Render markdown to HTML, using cache if source is unmodified
+  ## Returns content and whether it was re-rendered
   let cachePath = cacheDir / path.splitFile.name & ".html"
   let srcMtime = getFileInfo(path).lastWriteTime
 
   if fileExists(cachePath):
     let cacheMtime = getFileInfo(cachePath).lastWriteTime
     if cacheMtime > srcMtime:
-      return readFile(cachePath)
+      return (readFile(cachePath), false)
 
   let content = readFile(path)
-  result = markdown(content)
+  let rendered = markdown(content)
   createDir(cacheDir)
-  writeFile(cachePath, result)
+  writeFile(cachePath, rendered)
+  (rendered, true)
 
 proc extractPreview*(content: string): string =
   ## Extract content up to the first horizontal rule (<hr>)
@@ -44,15 +46,12 @@ proc formatDate*(t: Time): string =
   t.local.format("yyyy-MM-dd")
 
 proc renderPage*(src: SourceFile, menuItems: seq[string]): string =
-  ## Render a page using the page template
   pageTemplate(src.title, src.content, menuItems, formatDate(src.createdAt), formatDate(src.modifiedAt))
 
 proc renderPost*(src: SourceFile, menuItems: seq[string]): string =
-  ## Render a post using the post template
   postTemplate(src.title, src.content, menuItems, formatDate(src.createdAt), formatDate(src.modifiedAt))
 
 proc renderList*(name: string, posts: seq[SourceFile], menuItems: seq[string]): string =
-  ## Render a list of posts using the list template (always regenerated)
   var items: seq[tuple[title, preview, url, date: string]]
   for post in posts:
     items.add((

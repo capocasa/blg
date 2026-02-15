@@ -39,8 +39,14 @@ proc discoverTags(tagsDir: string): Table[string, seq[string]] =
         if linkKind == pcLinkToFile:
           result[tagName].add(expandSymlink(linkPath).splitFile.name)
 
+proc needsRegen(outPath: string, srcMtime: Time): bool =
+  ## Check if output needs regeneration based on source mtime
+  if not fileExists(outPath):
+    return true
+  getFileInfo(outPath).lastWriteTime < srcMtime
+
 proc buildSite*(contentDir, outputDir, cacheDir: string) =
-  ## Build the entire site
+  ## Build the entire site, only regenerating what changed
   let menuListPath = contentDir / "menu.list"
   let tagsDir = contentDir / "tags"
 
@@ -49,44 +55,62 @@ proc buildSite*(contentDir, outputDir, cacheDir: string) =
   var sources = discoverSourceFiles(contentDir)
   let tags = discoverTags(tagsDir)
 
+  # Track menu.list mtime for list invalidation
+  let menuMtime = if fileExists(menuListPath): getFileInfo(menuListPath).lastWriteTime
+                  else: fromUnix(0)
+
   createDir(outputDir)
   createDir(cacheDir)
 
-  # Render content and cache it
+  # Render markdown and track what changed
+  var changed: HashSet[string]
   for i, src in sources.mpairs:
-    src.content = renderMarkdown(src.path, cacheDir)
+    let (content, wasChanged) = renderMarkdown(src.path, cacheDir)
+    src.content = content
+    if wasChanged:
+      changed.incl(src.title)
 
   # Determine which files are explicit pages vs posts
   var posts: seq[SourceFile]
-
   for src in sources:
     if src.title notin menuSet:
       posts.add(src)
 
-  # Generate individual HTML files
+  # Generate individual HTML files (only if source changed or output missing)
+  var pagesBuilt, postsBuilt = 0
   for src in sources:
     let outPath = outputDir / src.title & ".html"
-    if src.title in menuSet:
-      writeFile(outPath, renderPage(src, menuItems))
-    else:
-      writeFile(outPath, renderPost(src, menuItems))
-    echo "  ", outPath
+    if src.title in changed or not fileExists(outPath):
+      if src.title in menuSet:
+        writeFile(outPath, renderPage(src, menuItems))
+        pagesBuilt += 1
+      else:
+        writeFile(outPath, renderPost(src, menuItems))
+        postsBuilt += 1
+      echo "  ", outPath
 
-  # Generate index (all posts not in menu)
+  # Generate index if any post changed, menu changed, or output missing
   let indexPath = outputDir / "index.html"
-  writeFile(indexPath, renderList("index", posts, menuItems))
-  echo "  ", indexPath
+  let postsChanged = posts.anyIt(it.title in changed)
+  if postsChanged or needsRegen(indexPath, menuMtime):
+    writeFile(indexPath, renderList("index", posts, menuItems))
+    echo "  ", indexPath
 
-  # Generate tag pages
+  # Generate tag pages (only if tagged posts changed or output missing)
+  var tagsBuilt = 0
   for tagName, taggedFiles in tags:
-    let tagPosts = posts.filterIt(it.title in taggedFiles.toHashSet)
+    let tagSet = taggedFiles.toHashSet
+    let tagPosts = posts.filterIt(it.title in tagSet)
+    let tagChanged = tagPosts.anyIt(it.title in changed)
     let tagDir = outputDir / tagName
-    createDir(tagDir)
     let tagIndexPath = tagDir / "index.html"
-    writeFile(tagIndexPath, renderList(tagName, tagPosts, menuItems))
-    echo "  ", tagIndexPath
+    if tagChanged or needsRegen(tagIndexPath, menuMtime):
+      createDir(tagDir)
+      writeFile(tagIndexPath, renderList(tagName, tagPosts, menuItems))
+      echo "  ", tagIndexPath
+      tagsBuilt += 1
 
-  echo "Built: ", sources.len, " files, ", tags.len, " tags"
+  echo "Built: ", pagesBuilt, " pages, ", postsBuilt, " posts, ", tagsBuilt, " tags (", changed.len, " sources changed)"
 
 proc loadEnvFile(path: string) =
   ## Load .env file into environment variables
