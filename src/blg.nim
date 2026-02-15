@@ -5,6 +5,8 @@
 
 import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars]
 import blg/[renderer, types]
+when defined(linux):
+  import blg/daemon
 
 proc loadMenuList(path: string): seq[string] =
   ## Load menu.list file - each line is a markdown filename, tag, or 'index'
@@ -156,8 +158,10 @@ Options:
   -i, --input <dir>    Input directory (required)
   -o, --output <dir>   Output directory (default: current directory)
   --cache <dir>        Cache directory (default: .blg-cache)
-  --per-page <n>       Items per page (default: 20)
-  -e, --env <file>     Env file (default: .env)
+  --per-page <n>       Items per page (default: 20)"""
+  when defined(linux):
+    echo "  -d, --daemon         Watch for changes and rebuild (5s debounce)"
+  echo """  -e, --env <file>     Env file (default: .env)
   -h, --help           Show this help
 
 Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE
@@ -173,6 +177,8 @@ when isMainModule:
     perPage = 20
     envFile = ".env"
     expectVal = ""
+  when defined(linux):
+    var daemonMode = false
 
   # First pass: find env file option
   for kind, key, val in getopt():
@@ -218,14 +224,25 @@ when isMainModule:
         of "e", "env": discard  # already handled
         else: echo "Unknown option: ", key; quit(1)
       else:
-        case key
-        of "o", "output": expectVal = "o"
-        of "i", "input": expectVal = "i"
-        of "cache": expectVal = "cache"
-        of "per-page": expectVal = "per-page"
-        of "e", "env": expectVal = "env"
-        of "h", "help": usage()
-        else: echo "Unknown option: ", key; quit(1)
+        when defined(linux):
+          case key
+          of "o", "output": expectVal = "o"
+          of "i", "input": expectVal = "i"
+          of "cache": expectVal = "cache"
+          of "per-page": expectVal = "per-page"
+          of "e", "env": expectVal = "env"
+          of "h", "help": usage()
+          of "d", "daemon": daemonMode = true
+          else: echo "Unknown option: ", key; quit(1)
+        else:
+          case key
+          of "o", "output": expectVal = "o"
+          of "i", "input": expectVal = "i"
+          of "cache": expectVal = "cache"
+          of "per-page": expectVal = "per-page"
+          of "e", "env": expectVal = "env"
+          of "h", "help": usage()
+          else: echo "Unknown option: ", key; quit(1)
     of cmdArgument:
       echo "Unexpected argument: ", key; quit(1)
     of cmdEnd: discard
@@ -234,4 +251,11 @@ when isMainModule:
     echo "Error: input directory is required (-i <dir> or BLG_INPUT)"
     quit(1)
 
-  buildSite(inputDir, outputDir, cacheDir, perPage)
+  when defined(linux):
+    if daemonMode:
+      buildSite(inputDir, outputDir, cacheDir, perPage)
+      watchAndRebuild(inputDir, proc() = buildSite(inputDir, outputDir, cacheDir, perPage))
+    else:
+      buildSite(inputDir, outputDir, cacheDir, perPage)
+  else:
+    buildSite(inputDir, outputDir, cacheDir, perPage)
