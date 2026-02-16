@@ -7,13 +7,14 @@ include "templates/page.nimf"
 include "templates/post.nimf"
 include "templates/list.nimf"
 
-proc renderMarkdown*(path: string, cacheDir: string): tuple[content: string, changed: bool] =
+proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[content: string, changed: bool] =
   ## Render markdown to HTML, using cache if source is unmodified
   ## Returns content and whether it was re-rendered
+  ## If force=true, always re-render regardless of cache
   let cachePath = cacheDir / path.splitFile.name & ".html"
   let srcMtime = getFileInfo(path).lastWriteTime
 
-  if fileExists(cachePath):
+  if not force and fileExists(cachePath):
     let cacheMtime = getFileInfo(cachePath).lastWriteTime
     if cacheMtime > srcMtime:
       return (readFile(cachePath), false)

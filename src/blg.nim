@@ -69,8 +69,9 @@ proc listPagePath(outputDir, name: string, page: int): string =
   if page == 1: outputDir / name & ".html"
   else: outputDir / name & "-" & $page & ".html"
 
-proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
+proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = false) =
   ## Build the entire site, only regenerating what changed
+  ## If force=true, regenerate everything ignoring cache
   let menuListPath = contentDir / "menu.list"
 
   var sources = discoverSourceFiles(contentDir)
@@ -95,7 +96,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
   # Render markdown and track what changed
   var changed: HashSet[string]
   for i, src in sources.mpairs:
-    let (content, wasChanged) = renderMarkdown(src.path, cacheDir)
+    let (content, wasChanged) = renderMarkdown(src.path, cacheDir, force)
     src.content = content
     if wasChanged:
       changed.incl(src.title)
@@ -110,7 +111,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
   var pagesBuilt, postsBuilt = 0
   for src in sources:
     let outPath = outputDir / src.title & ".html"
-    if src.title in changed or not fileExists(outPath):
+    if force or src.title in changed or not fileExists(outPath):
       if src.title in menuSet:
         writeFile(outPath, renderPage(src, menuItems))
         pagesBuilt += 1
@@ -125,7 +126,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
   var listsBuilt = 0
   for p, pagePosts in indexPages:
     let outPath = listPagePath(outputDir, "index", p + 1)
-    if postsChanged or needsRegen(outPath, menuMtime):
+    if force or postsChanged or needsRegen(outPath, menuMtime):
       writeFile(outPath, renderList("index", pagePosts, menuItems, p + 1, indexPages.len))
       echo "  ", outPath
       listsBuilt += 1
@@ -138,7 +139,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
     let tagPages = paginate(tagPosts, perPage)
     for p, pagePosts in tagPages:
       let outPath = listPagePath(outputDir, tagName, p + 1)
-      if tagChanged or needsRegen(outPath, menuMtime):
+      if force or tagChanged or needsRegen(outPath, menuMtime):
         writeFile(outPath, renderList(tagName, pagePosts, menuItems, p + 1, tagPages.len))
         echo "  ", outPath
         listsBuilt += 1
@@ -169,7 +170,8 @@ Options:
   -i, --input <dir>    Input directory (default: pages)
   -o, --output <dir>   Output directory (default: public)
   --cache <dir>        Cache directory (default: html)
-  --per-page <n>       Items per page (default: 20)"""
+  --per-page <n>       Items per page (default: 20)
+  -f, --force          Force regenerate all (ignore cache)"""
   when defined(linux):
     echo "  -d, --daemon         Watch for changes and rebuild (5s debounce)"
   echo """  -e, --env <file>     Env file (default: .env)
@@ -188,6 +190,7 @@ when isMainModule:
     perPage = 20
     envFile = ".env"
     expectVal = ""
+    forceMode = false
   when defined(linux):
     var daemonMode = false
 
@@ -243,6 +246,7 @@ when isMainModule:
           of "per-page": expectVal = "per-page"
           of "e", "env": expectVal = "env"
           of "h", "help": usage()
+          of "f", "force": forceMode = true
           of "d", "daemon": daemonMode = true
           else: echo "Unknown option: ", key; quit(1)
         else:
@@ -253,6 +257,7 @@ when isMainModule:
           of "per-page": expectVal = "per-page"
           of "e", "env": expectVal = "env"
           of "h", "help": usage()
+          of "f", "force": forceMode = true
           else: echo "Unknown option: ", key; quit(1)
     of cmdArgument:
       echo "Unexpected argument: ", key; quit(1)
@@ -260,9 +265,9 @@ when isMainModule:
 
   when defined(linux):
     if daemonMode:
-      buildSite(inputDir, outputDir, cacheDir, perPage)
+      buildSite(inputDir, outputDir, cacheDir, perPage, forceMode)
       watchAndRebuild(inputDir, proc() = buildSite(inputDir, outputDir, cacheDir, perPage))
     else:
-      buildSite(inputDir, outputDir, cacheDir, perPage)
+      buildSite(inputDir, outputDir, cacheDir, perPage, forceMode)
   else:
-    buildSite(inputDir, outputDir, cacheDir, perPage)
+    buildSite(inputDir, outputDir, cacheDir, perPage, forceMode)
