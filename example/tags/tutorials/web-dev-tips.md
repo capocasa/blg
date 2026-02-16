@@ -1,1 +1,0 @@
-../../content/web-dev-tips.md

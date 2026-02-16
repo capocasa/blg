@@ -8,10 +8,16 @@ import blg/[renderer, types]
 when defined(linux):
   import blg/daemon
 
-proc loadMenuList(path: string): seq[string] =
+proc loadMenuList(path: string, tags: seq[string]): seq[string] =
   ## Load menu.list file - each line is a markdown filename, tag, or 'index'
+  ## If file doesn't exist, default to index + tags alphabetically
   if not fileExists(path):
-    return @[]
+    result.add("index")
+    var sortedTags = tags
+    sortedTags.sort()
+    for tag in sortedTags:
+      result.add("tag:" & tag)
+    return
   for line in lines(path):
     let trimmed = line.strip()
     if trimmed.len > 0 and not trimmed.startsWith("#"):
@@ -29,17 +35,18 @@ proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
     ))
   result.sort(proc(a, b: SourceFile): int = cmp(b.createdAt, a.createdAt))
 
-proc discoverTags(tagsDir: string): Table[string, seq[string]] =
+proc discoverTags(contentDir: string): Table[string, seq[string]] =
   ## Discover tags from subdirectories containing symlinks
-  if not dirExists(tagsDir):
-    return
-  for kind, tagPath in walkDir(tagsDir):
+  ## Directories directly within contentDir represent tags
+  for kind, tagPath in walkDir(contentDir):
     if kind == pcDir:
       let tagName = tagPath.splitPath.tail
-      result[tagName] = @[]
+      var tagged: seq[string]
       for linkKind, linkPath in walkDir(tagPath):
         if linkKind == pcLinkToFile:
-          result[tagName].add(expandSymlink(linkPath).splitFile.name)
+          tagged.add(expandSymlink(linkPath).splitFile.name)
+      if tagged.len > 0:
+        result[tagName] = tagged
 
 proc needsRegen(outPath: string, srcMtime: Time): bool =
   ## Check if output needs regeneration based on source mtime
@@ -57,20 +64,26 @@ proc paginate(items: seq[SourceFile], perPage: int): seq[seq[SourceFile]] =
     result.add(items[i ..< min(i + perPage, items.len)])
     i += perPage
 
-proc listPagePath(base: string, page: int): string =
-  ## Generate path for a list page: index.html, index-2.html, etc.
-  if page == 1: base / "index.html"
-  else: base / "index-" & $page & ".html"
+proc listPagePath(outputDir, name: string, page: int): string =
+  ## Generate path for a list page: name.html, name-2.html, etc.
+  if page == 1: outputDir / name & ".html"
+  else: outputDir / name & "-" & $page & ".html"
 
 proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
   ## Build the entire site, only regenerating what changed
   let menuListPath = contentDir / "menu.list"
-  let tagsDir = contentDir / "tags"
 
-  let menuItems = loadMenuList(menuListPath)
-  let menuSet = menuItems.toHashSet
   var sources = discoverSourceFiles(contentDir)
-  let tags = discoverTags(tagsDir)
+  let tags = discoverTags(contentDir)
+  let tagNames = toSeq(tags.keys).toHashSet
+  let menuItems = loadMenuList(menuListPath, toSeq(tags.keys))
+  let menuSet = menuItems.toHashSet
+
+  # Validate: pages shouldn't be named like tags
+  for src in sources:
+    if src.title in tagNames:
+      echo "Error: page '", src.title, "' has same name as tag directory"
+      quit(1)
 
   # Track menu.list mtime for list invalidation
   let menuMtime = if fileExists(menuListPath): getFileInfo(menuListPath).lastWriteTime
@@ -111,24 +124,22 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int) =
   let indexPages = paginate(posts, perPage)
   var listsBuilt = 0
   for p, pagePosts in indexPages:
-    let outPath = listPagePath(outputDir, p + 1)
+    let outPath = listPagePath(outputDir, "index", p + 1)
     if postsChanged or needsRegen(outPath, menuMtime):
-      writeFile(outPath, renderList("index", pagePosts, menuItems, p + 1, indexPages.len, ""))
+      writeFile(outPath, renderList("index", pagePosts, menuItems, p + 1, indexPages.len))
       echo "  ", outPath
       listsBuilt += 1
 
-  # Generate paginated tag pages
+  # Generate paginated tag pages (flat: tutorials.html, tutorials-2.html)
   for tagName, taggedFiles in tags:
     let tagSet = taggedFiles.toHashSet
     let tagPosts = posts.filterIt(it.title in tagSet)
     let tagChanged = tagPosts.anyIt(it.title in changed)
-    let tagDir = outputDir / tagName
     let tagPages = paginate(tagPosts, perPage)
-    createDir(tagDir)
     for p, pagePosts in tagPages:
-      let outPath = listPagePath(tagDir, p + 1)
+      let outPath = listPagePath(outputDir, tagName, p + 1)
       if tagChanged or needsRegen(outPath, menuMtime):
-        writeFile(outPath, renderList(tagName, pagePosts, menuItems, p + 1, tagPages.len, tagName & "/"))
+        writeFile(outPath, renderList(tagName, pagePosts, menuItems, p + 1, tagPages.len))
         echo "  ", outPath
         listsBuilt += 1
 
@@ -152,12 +163,12 @@ proc loadEnvFile(path: string) =
 proc usage() =
   echo """blg - Blog Generator
 
-Usage: blg -i <input-dir> [options]
+Usage: blg [options]
 
 Options:
-  -i, --input <dir>    Input directory (required)
-  -o, --output <dir>   Output directory (default: current directory)
-  --cache <dir>        Cache directory (default: .blg-cache)
+  -i, --input <dir>    Input directory (default: pages)
+  -o, --output <dir>   Output directory (default: public)
+  --cache <dir>        Cache directory (default: html)
   --per-page <n>       Items per page (default: 20)"""
   when defined(linux):
     echo "  -d, --daemon         Watch for changes and rebuild (5s debounce)"
@@ -171,9 +182,9 @@ Precedence: option > env var > .env file > default"""
 
 when isMainModule:
   var
-    inputDir = ""
-    outputDir = getCurrentDir()
-    cacheDir = ".blg-cache"
+    inputDir = "pages"
+    outputDir = "public"
+    cacheDir = "html"
     perPage = 20
     envFile = ".env"
     expectVal = ""
@@ -246,10 +257,6 @@ when isMainModule:
     of cmdArgument:
       echo "Unexpected argument: ", key; quit(1)
     of cmdEnd: discard
-
-  if inputDir == "":
-    echo "Error: input directory is required (-i <dir> or BLG_INPUT)"
-    quit(1)
 
   when defined(linux):
     if daemonMode:

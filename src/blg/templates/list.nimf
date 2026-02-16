@@ -1,13 +1,14 @@
 #? stdtmpl | standard
-#proc listTemplate*(name: string, items: seq[tuple[title, preview, url, date: string]], menuItems: seq[string], p, n: int, baseUrl: string): string =
-#  let prevUrl = if p == 2: baseUrl & "index.html" else: baseUrl & "index-" & $(p-1) & ".html"
-#  let nextUrl = baseUrl & "index-" & $(p+1) & ".html"
+#proc listTemplate*(name: string, items: seq[tuple[title, preview, url, date: string]], menuItems: seq[string], p, n: int): string =
+#  let prevUrl = if p == 2: name & ".html" else: name & "-" & $(p-1) & ".html"
+#  let nextUrl = name & "-" & $(p+1) & ".html"
+#  let pageTitle = if n > 1: name & " - Page " & $p else: name
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${name}#if n > 1: - Page ${p}#end if</title>
+  <title>${pageTitle}</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +18,7 @@
 #    if item == "index":
       <li><a href="index.html">Home</a></li>
 #    elif item.startsWith("tag:"):
-      <li><a href="${item[4..^1]}/index.html">${item[4..^1]}</a></li>
+      <li><a href="${item[4..^1]}.html">${item[4..^1]}</a></li>
 #    else:
       <li><a href="${item}.html">${item}</a></li>
 #    end if
