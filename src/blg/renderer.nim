@@ -3,6 +3,9 @@
 import std/[os, times, strutils]
 import md, types
 
+proc formatDate*(t: Time): string =
+  t.local.format("yyyy-MM-dd")
+
 include "templates/page.nimf"
 include "templates/post.nimf"
 include "templates/list.nimf"
@@ -43,22 +46,19 @@ proc extractPreview*(content: string): string =
     else:
       result = content
 
-proc formatDate*(t: Time): string =
-  t.local.format("yyyy-MM-dd")
+proc renderPage*(src: SourceFile, menu: seq[MenuItem]): string =
+  pageTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menu)
 
-proc renderPage*(src: SourceFile, menuItems: seq[string]): string =
-  pageTemplate(src.title, src.content, menuItems, formatDate(src.createdAt), formatDate(src.modifiedAt))
+proc renderPost*(src: SourceFile, menu: seq[MenuItem]): string =
+  postTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menu)
 
-proc renderPost*(src: SourceFile, menuItems: seq[string]): string =
-  postTemplate(src.title, src.content, menuItems, formatDate(src.createdAt), formatDate(src.modifiedAt))
-
-proc renderList*(name: string, posts: seq[SourceFile], menuItems: seq[string], page, numPages: int): string =
-  var items: seq[tuple[title, preview, url, date: string]]
+proc renderList*(title: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int): string =
+  var previews: seq[PostPreview]
   for post in posts:
-    items.add((
+    previews.add(PostPreview(
       title: post.title,
       preview: extractPreview(post.content),
       url: post.title & ".html",
-      date: formatDate(post.createdAt)
+      date: post.createdAt
     ))
-  listTemplate(name, items, menuItems, page, numPages)
+  listTemplate(title, previews, menu, page, totalPages)

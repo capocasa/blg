@@ -3,10 +3,12 @@
 ## One-shot blog generator from markdown files.
 ## Tags are implemented as subdirectories with symlinks.
 
-import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars]
-import blg/[renderer, types]
+import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, dynlib]
+import blg/[renderer, types, dynload]
 when defined(linux):
   import blg/daemon
+
+var templateLib: TemplateLib
 
 proc loadMenuList(path: string, tags: seq[string]): seq[string] =
   ## Load menu.list file - each line is a markdown filename, tag, or 'index'
@@ -22,6 +24,44 @@ proc loadMenuList(path: string, tags: seq[string]): seq[string] =
     let trimmed = line.strip()
     if trimmed.len > 0 and not trimmed.startsWith("#"):
       result.add(trimmed)
+
+proc buildMenu(menuItems: seq[string], activeItem: string): seq[MenuItem] =
+  ## Convert menu.list entries to MenuItem objects with active state
+  for item in menuItems:
+    if item == "index":
+      result.add(MenuItem(url: "index.html", label: "Home", active: activeItem == "index"))
+    elif item.startsWith("tag:"):
+      let tag = item[4..^1]
+      result.add(MenuItem(url: tag & ".html", label: tag, active: activeItem == tag))
+    else:
+      result.add(MenuItem(url: item & ".html", label: item, active: activeItem == item))
+
+# Template rendering with dynload fallback
+proc doRenderPage(src: SourceFile, menu: seq[MenuItem]): string =
+  if templateLib.renderPage != nil:
+    templateLib.renderPage(src.title, src.content, src.createdAt, src.modifiedAt, menu)
+  else:
+    renderPage(src, menu)
+
+proc doRenderPost(src: SourceFile, menu: seq[MenuItem]): string =
+  if templateLib.renderPost != nil:
+    templateLib.renderPost(src.title, src.content, src.createdAt, src.modifiedAt, menu)
+  else:
+    renderPost(src, menu)
+
+proc doRenderList(title: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int): string =
+  if templateLib.renderList != nil:
+    var previews: seq[PostPreview]
+    for post in posts:
+      previews.add(PostPreview(
+        title: post.title,
+        preview: extractPreview(post.content),
+        url: post.title & ".html",
+        date: post.createdAt
+      ))
+    templateLib.renderList(title, previews, menu, page, totalPages)
+  else:
+    renderList(title, posts, menu, page, totalPages)
 
 proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
   ## Find all .md files in content directory and gather metadata
@@ -72,6 +112,11 @@ proc listPagePath(outputDir, name: string, page: int): string =
 proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = false) =
   ## Build the entire site, only regenerating what changed
   ## If force=true, regenerate everything ignoring cache
+
+  # Try to load custom templates
+  let templatePath = cacheDir / DynlibFormat % "template"
+  templateLib = loadTemplateLib(templatePath)
+
   let menuListPath = contentDir / "menu.list"
 
   var sources = discoverSourceFiles(contentDir)
@@ -112,11 +157,12 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   for src in sources:
     let outPath = outputDir / src.title & ".html"
     if force or src.title in changed or not fileExists(outPath):
+      let menu = buildMenu(menuItems, src.title)
       if src.title in menuSet:
-        writeFile(outPath, renderPage(src, menuItems))
+        writeFile(outPath, doRenderPage(src, menu))
         pagesBuilt += 1
       else:
-        writeFile(outPath, renderPost(src, menuItems))
+        writeFile(outPath, doRenderPost(src, menu))
         postsBuilt += 1
       echo "  ", outPath
 
@@ -124,10 +170,11 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let postsChanged = posts.anyIt(it.title in changed)
   let indexPages = paginate(posts, perPage)
   var listsBuilt = 0
+  let indexMenu = buildMenu(menuItems, "index")
   for p, pagePosts in indexPages:
     let outPath = listPagePath(outputDir, "index", p + 1)
     if force or postsChanged or needsRegen(outPath, menuMtime):
-      writeFile(outPath, renderList("index", pagePosts, menuItems, p + 1, indexPages.len))
+      writeFile(outPath, doRenderList("index", pagePosts, indexMenu, p + 1, indexPages.len))
       echo "  ", outPath
       listsBuilt += 1
 
@@ -137,10 +184,11 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let tagPosts = posts.filterIt(it.title in tagSet)
     let tagChanged = tagPosts.anyIt(it.title in changed)
     let tagPages = paginate(tagPosts, perPage)
+    let tagMenu = buildMenu(menuItems, tagName)
     for p, pagePosts in tagPages:
       let outPath = listPagePath(outputDir, tagName, p + 1)
       if force or tagChanged or needsRegen(outPath, menuMtime):
-        writeFile(outPath, renderList(tagName, pagePosts, menuItems, p + 1, tagPages.len))
+        writeFile(outPath, doRenderList(tagName, pagePosts, tagMenu, p + 1, tagPages.len))
         echo "  ", outPath
         listsBuilt += 1
 
@@ -167,9 +215,9 @@ proc usage() =
 Usage: blg [options]
 
 Options:
-  -i, --input <dir>    Input directory (default: pages)
+  -i, --input <dir>    Input directory (default: md)
   -o, --output <dir>   Output directory (default: public)
-  --cache <dir>        Cache directory (default: html)
+  -c, --cache <dir>    Cache directory (default: cache)
   --per-page <n>       Items per page (default: 20)
   -f, --force          Force regenerate all (ignore cache)"""
   when defined(linux):
@@ -184,9 +232,9 @@ Precedence: option > env var > .env file > default"""
 
 when isMainModule:
   var
-    inputDir = "pages"
+    inputDir = "md"
     outputDir = "public"
-    cacheDir = "html"
+    cacheDir = "cache"
     perPage = 20
     envFile = ".env"
     expectVal = ""
@@ -220,7 +268,7 @@ when isMainModule:
       case expectVal
       of "o": outputDir = key
       of "i": inputDir = key
-      of "cache": cacheDir = key
+      of "c": cacheDir = key
       of "per-page": perPage = parseInt(key)
       of "env": discard  # already handled
       else: discard
@@ -233,7 +281,7 @@ when isMainModule:
         case key
         of "o", "output": outputDir = val
         of "i", "input": inputDir = val
-        of "cache": cacheDir = val
+        of "c", "cache": cacheDir = val
         of "per-page": perPage = parseInt(val)
         of "e", "env": discard  # already handled
         else: echo "Unknown option: ", key; quit(1)
@@ -242,7 +290,7 @@ when isMainModule:
           case key
           of "o", "output": expectVal = "o"
           of "i", "input": expectVal = "i"
-          of "cache": expectVal = "cache"
+          of "c", "cache": expectVal = "c"
           of "per-page": expectVal = "per-page"
           of "e", "env": expectVal = "env"
           of "h", "help": usage()
@@ -253,7 +301,7 @@ when isMainModule:
           case key
           of "o", "output": expectVal = "o"
           of "i", "input": expectVal = "i"
-          of "cache": expectVal = "cache"
+          of "c", "cache": expectVal = "c"
           of "per-page": expectVal = "per-page"
           of "e", "env": expectVal = "env"
           of "h", "help": usage()

@@ -1,5 +1,6 @@
 #? stdtmpl | standard
-#proc pageTemplate*(title, content: string, menuItems: seq[string], createdAt, modifiedAt: string): string =
+#import times
+#proc pageTemplate*(title, content: string, date, modified: Time, menu: seq[MenuItem]): string =
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,13 +12,11 @@
 <body>
   <nav>
     <ul>
-#  for item in menuItems:
-#    if item == "index":
-      <li><a href="index.html">Home</a></li>
-#    elif item.startsWith("tag:"):
-      <li><a href="${item[4..^1]}/index.html">${item[4..^1]}</a></li>
+#  for item in menu:
+#    if item.active:
+      <li><a href="${item.url}" class="active">${item.label}</a></li>
 #    else:
-      <li><a href="${item}.html">${item}</a></li>
+      <li><a href="${item.url}">${item.label}</a></li>
 #    end if
 #  end for
     </ul>
@@ -25,10 +24,6 @@
   <main>
     <article class="page">
       <h1>${title}</h1>
-      <div class="meta">
-        <span class="created">Created: ${createdAt}</span>
-        <span class="modified">Modified: ${modifiedAt}</span>
-      </div>
       <div class="content">
 ${content}
       </div>

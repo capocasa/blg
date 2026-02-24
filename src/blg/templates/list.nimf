@@ -1,8 +1,8 @@
 #? stdtmpl | standard
-#proc listTemplate*(name: string, items: seq[tuple[title, preview, url, date: string]], menuItems: seq[string], p, n: int): string =
-#  let prevUrl = if p == 2: name & ".html" else: name & "-" & $(p-1) & ".html"
-#  let nextUrl = name & "-" & $(p+1) & ".html"
-#  let pageTitle = if n > 1: name & " - Page " & $p else: name
+#proc listTemplate*(title: string, posts: seq[PostPreview], menu: seq[MenuItem], page, totalPages: int): string =
+#  let prevUrl = if page == 2: title & ".html" else: title & "-" & $(page-1) & ".html"
+#  let nextUrl = title & "-" & $(page+1) & ".html"
+#  let pageTitle = if totalPages > 1: title & " - Page " & $page else: title
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,39 +14,37 @@
 <body>
   <nav>
     <ul>
-#  for item in menuItems:
-#    if item == "index":
-      <li><a href="index.html">Home</a></li>
-#    elif item.startsWith("tag:"):
-      <li><a href="${item[4..^1]}.html">${item[4..^1]}</a></li>
+#  for item in menu:
+#    if item.active:
+      <li><a href="${item.url}" class="active">${item.label}</a></li>
 #    else:
-      <li><a href="${item}.html">${item}</a></li>
+      <li><a href="${item.url}">${item.label}</a></li>
 #    end if
 #  end for
     </ul>
   </nav>
   <main>
-    <h1>${name}</h1>
+    <h1>${title}</h1>
     <ul class="post-list">
-#  for item in items:
+#  for post in posts:
       <li>
         <article>
-          <h2><a href="${item.url}">${item.title}</a></h2>
-          <time datetime="${item.date}">${item.date}</time>
+          <h2><a href="${post.url}">${post.title}</a></h2>
+          <time datetime="${formatDate(post.date)}">${formatDate(post.date)}</time>
           <div class="preview">
-${item.preview}
+${post.preview}
           </div>
         </article>
       </li>
 #  end for
     </ul>
-#  if n > 1:
+#  if totalPages > 1:
     <nav class="pagination">
-#    if p > 1:
+#    if page > 1:
       <a href="${prevUrl}" rel="prev">Previous</a>
 #    end if
-      <span>Page ${p} of ${n}</span>
-#    if p < n:
+      <span>Page ${page} of ${totalPages}</span>
+#    if page < totalPages:
       <a href="${nextUrl}" rel="next">Next</a>
 #    end if
     </nav>

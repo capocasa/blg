@@ -1,5 +1,6 @@
 #? stdtmpl | standard
-#proc postTemplate*(title, content: string, menuItems: seq[string], createdAt, modifiedAt: string): string =
+#import times
+#proc postTemplate*(title, content: string, date, modified: Time, menu: seq[MenuItem]): string =
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,28 +12,26 @@
 <body>
   <nav>
     <ul>
-#  for item in menuItems:
-#    if item == "index":
-      <li><a href="index.html">Home</a></li>
-#    elif item.startsWith("tag:"):
-      <li><a href="${item[4..^1]}/index.html">${item[4..^1]}</a></li>
+#  for item in menu:
+#    if item.active:
+      <li><a href="${item.url}" class="active">${item.label}</a></li>
 #    else:
-      <li><a href="${item}.html">${item}</a></li>
+      <li><a href="${item.url}">${item.label}</a></li>
 #    end if
-#    end for
+#  end for
     </ul>
   </nav>
   <main>
     <article class="post">
       <header>
         <h1>${title}</h1>
-        <time datetime="${createdAt}">${createdAt}</time>
+        <time datetime="${formatDate(date)}">${formatDate(date)}</time>
       </header>
       <div class="content">
 ${content}
       </div>
       <footer>
-        <p class="modified">Last updated: ${modifiedAt}</p>
+        <p class="modified">Last updated: ${formatDate(modified)}</p>
       </footer>
     </article>
   </main>
