@@ -4,7 +4,7 @@
 ## Tags are implemented as subdirectories with symlinks.
 
 import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, dynlib]
-import blg/[renderer, types, dynload]
+import blg/[renderer, types, dynload, datetime]
 when defined(linux):
   import blg/daemon
 
@@ -230,7 +230,8 @@ Options:
   echo """  -e, --env <file>     Env file (default: .env)
   -h, --help           Show this help
 
-Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT
+Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT, BLG_DATE_FORMAT
+  Date presets: iso, us-long, us-short, eu-long, eu-medium, eu-short, uk (or custom format)
 
 Precedence: option > env var > .env file > default"""
   quit(0)
@@ -261,6 +262,7 @@ when isMainModule:
 
   # Load .env file, then read env vars
   loadEnvFile(envFile)
+  initDateFormat()  # Must be after loadEnvFile
   if existsEnv("BLG_INPUT"): inputDir = getEnv("BLG_INPUT")
   if existsEnv("BLG_OUTPUT"): outputDir = getEnv("BLG_OUTPUT")
   if existsEnv("BLG_CACHE"): cacheDir = getEnv("BLG_CACHE")

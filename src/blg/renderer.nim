@@ -1,10 +1,10 @@
 ## Markdown rendering with caching and template application
 
 import std/[os, times, strutils]
-import md, types
+import md, types, datetime
 
 proc formatDate*(t: Time): string =
-  t.local.format("yyyy-MM-dd")
+  formatTime(t)
 
 include "templates/page.nimf"
 include "templates/post.nimf"
