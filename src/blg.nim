@@ -9,6 +9,11 @@ when defined(linux):
   import blg/daemon
 
 var templateLib: TemplateLib
+var ext: string = "html"  # file extension, set from BLG_EXT
+
+proc suffix(): string =
+  ## Returns ".ext" or "" if ext is empty
+  if ext.len > 0: "." & ext else: ""
 
 proc loadMenuList(path: string, tags: seq[string]): seq[string] =
   ## Load menu.list file - each line is a markdown filename, tag, or 'index'
@@ -29,12 +34,12 @@ proc buildMenu(menuItems: seq[string], activeItem: string): seq[MenuItem] =
   ## Convert menu.list entries to MenuItem objects with active state
   for item in menuItems:
     if item == "index":
-      result.add(MenuItem(url: "index.html", label: "Home", active: activeItem == "index"))
+      result.add(MenuItem(url: "index" & suffix(), label: "Home", active: activeItem == "index"))
     elif item.startsWith("tag:"):
       let tag = item[4..^1]
-      result.add(MenuItem(url: tag & ".html", label: tag, active: activeItem == tag))
+      result.add(MenuItem(url: tag & suffix(), label: tag, active: activeItem == tag))
     else:
-      result.add(MenuItem(url: item & ".html", label: item, active: activeItem == item))
+      result.add(MenuItem(url: item & suffix(), label: item, active: activeItem == item))
 
 # Template rendering with dynload fallback
 proc doRenderPage(src: SourceFile, menu: seq[MenuItem]): string =
@@ -56,12 +61,12 @@ proc doRenderList(title: string, posts: seq[SourceFile], menu: seq[MenuItem], pa
       previews.add(PostPreview(
         title: post.title,
         preview: extractPreview(post.content),
-        url: post.title & ".html",
+        url: post.title & suffix(),
         date: post.createdAt
       ))
     templateLib.renderList(title, previews, menu, page, totalPages)
   else:
-    renderList(title, posts, menu, page, totalPages)
+    renderList(title, posts, menu, page, totalPages, suffix())
 
 proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
   ## Find all .md files in content directory and gather metadata
@@ -106,8 +111,8 @@ proc paginate(items: seq[SourceFile], perPage: int): seq[seq[SourceFile]] =
 
 proc listPagePath(outputDir, name: string, page: int): string =
   ## Generate path for a list page: name.html, name-2.html, etc.
-  if page == 1: outputDir / name & ".html"
-  else: outputDir / name & "-" & $page & ".html"
+  if page == 1: outputDir / name & suffix()
+  else: outputDir / name & "-" & $page & suffix()
 
 proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = false) =
   ## Build the entire site, only regenerating what changed
@@ -155,7 +160,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   # Generate individual HTML files (only if source changed or output missing)
   var pagesBuilt, postsBuilt = 0
   for src in sources:
-    let outPath = outputDir / src.title & ".html"
+    let outPath = outputDir / src.title & suffix()
     if force or src.title in changed or not fileExists(outPath):
       let menu = buildMenu(menuItems, src.title)
       if src.title in menuSet:
@@ -225,7 +230,7 @@ Options:
   echo """  -e, --env <file>     Env file (default: .env)
   -h, --help           Show this help
 
-Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE
+Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT
 
 Precedence: option > env var > .env file > default"""
   quit(0)
@@ -260,6 +265,7 @@ when isMainModule:
   if existsEnv("BLG_OUTPUT"): outputDir = getEnv("BLG_OUTPUT")
   if existsEnv("BLG_CACHE"): cacheDir = getEnv("BLG_CACHE")
   if existsEnv("BLG_PER_PAGE"): perPage = parseInt(getEnv("BLG_PER_PAGE"))
+  if existsEnv("BLG_EXT"): ext = getEnv("BLG_EXT")
 
   # Second pass: CLI args override env
   expectVal = ""

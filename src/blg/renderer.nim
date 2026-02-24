@@ -52,13 +52,13 @@ proc renderPage*(src: SourceFile, menu: seq[MenuItem]): string =
 proc renderPost*(src: SourceFile, menu: seq[MenuItem]): string =
   postTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menu)
 
-proc renderList*(title: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int): string =
+proc renderList*(title: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int, urlSuffix = ".html"): string =
   var previews: seq[PostPreview]
   for post in posts:
     previews.add(PostPreview(
       title: post.title,
       preview: extractPreview(post.content),
-      url: post.title & ".html",
+      url: post.title & urlSuffix,
       date: post.createdAt
     ))
   listTemplate(title, previews, menu, page, totalPages)
