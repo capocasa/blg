@@ -3,8 +3,96 @@
 import std/[os, times, strutils]
 import md, types, datetime
 
+proc isIsoDate(line: string): bool =
+  ## Check if line matches YYYY-MM-DD format
+  let s = line.strip
+  if s.len < 10: return false
+  # Check format: 4 digits, hyphen, 2 digits, hyphen, 2 digits
+  if s.len >= 10 and
+     s[0].isDigit and s[1].isDigit and s[2].isDigit and s[3].isDigit and
+     s[4] == '-' and
+     s[5].isDigit and s[6].isDigit and
+     s[7] == '-' and
+     s[8].isDigit and s[9].isDigit:
+    # Must be end of line or followed by whitespace/newline
+    return s.len == 10 or s[10] in Whitespace
+  false
+
+proc ensureDateLine(path: string, mtime: Time): bool =
+  ## Check if file starts with an ISO date, if not prepend mtime date.
+  ## Returns true if file was modified.
+  let content = readFile(path)
+
+  # Find first non-whitespace line
+  var firstLineStart = 0
+  while firstLineStart < content.len and content[firstLineStart] in Whitespace:
+    inc firstLineStart
+
+  # Find end of first line
+  var firstLineEnd = firstLineStart
+  while firstLineEnd < content.len and content[firstLineEnd] notin {'\n', '\r'}:
+    inc firstLineEnd
+
+  let firstLine = if firstLineStart < content.len:
+    content[firstLineStart..<firstLineEnd]
+  else:
+    ""
+
+  if isIsoDate(firstLine):
+    return false
+
+  # Prepend ISO date
+  let dateStr = mtime.format("yyyy-MM-dd")
+  let newContent = dateStr & "\n\n" & content
+  writeFile(path, newContent)
+  true
+
 proc formatDate*(t: Time): string =
   formatTime(t)
+
+proc generatePageLinks*(listSlug: string, current, total: int, urlSuffix = ".html"): seq[PageLink] =
+  ## Generate page links with smart truncation
+  ## Shows: first, ellipsis, window around current, ellipsis, last
+  if total <= 1:
+    return @[]
+
+  proc pageUrl(p: int): string =
+    if p == 1: listSlug & urlSuffix
+    else: listSlug & "-" & $p & urlSuffix
+
+  var pages: seq[int]
+
+  if total <= 7:
+    # Show all pages if 7 or fewer
+    for i in 1..total:
+      pages.add(i)
+  else:
+    # Always show first page
+    pages.add(1)
+
+    # Window around current page (2 on each side)
+    let windowStart = max(2, current - 2)
+    let windowEnd = min(total - 1, current + 2)
+
+    # Add ellipsis if gap after first
+    if windowStart > 2:
+      pages.add(-1)  # -1 = ellipsis
+
+    for i in windowStart..windowEnd:
+      pages.add(i)
+
+    # Add ellipsis if gap before last
+    if windowEnd < total - 1:
+      pages.add(-1)
+
+    # Always show last page
+    pages.add(total)
+
+  for p in pages:
+    if p == -1:
+      result.add(PageLink(ellipsis: true))
+    else:
+      result.add(PageLink(page: p, url: pageUrl(p), current: p == current))
 
 include "templates/page.nimf"
 include "templates/post.nimf"
@@ -21,6 +109,9 @@ proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[conte
     let cacheMtime = getFileInfo(cachePath).lastWriteTime
     if cacheMtime > srcMtime:
       return (readFile(cachePath), false)
+
+  # Auto-add date if missing (in-place edit)
+  discard ensureDateLine(path, srcMtime)
 
   let content = readFile(path)
   let rendered = markdown(content)
@@ -75,4 +166,4 @@ proc renderList*(listTitle: string, posts: seq[SourceFile], menu: seq[MenuItem],
       date: post.createdAt,
       tags: post.tags
     ))
-  listTemplate(listTitle, previews, menu, page, totalPages)
+  listTemplate(listTitle, previews, menu, page, totalPages, urlSuffix)
