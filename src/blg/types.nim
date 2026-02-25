@@ -5,10 +5,12 @@ import std/times
 type
   SourceFile* = object
     path*: string
-    title*: string
+    slug*: string  # Filename without extension (for URLs)
+    title*: string  # Display title extracted from content <h1>
     createdAt*: Time
     modifiedAt*: Time
     content*: string  # Rendered HTML content
+    tags*: seq[string]  # Tags this post belongs to
 
   # Template interface types
   MenuItem* = object
@@ -16,5 +18,6 @@ type
     active*: bool
 
   PostPreview* = object
-    title*, preview*, url*: string
+    slug*, preview*, url*: string
     date*: Time
+    tags*: seq[string]  # Tags for linking

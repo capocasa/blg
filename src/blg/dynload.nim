@@ -4,7 +4,7 @@ import std/[dynlib, os, times]
 import types
 
 type
-  RenderPostProc* = proc(title, content: string, date, modified: Time, menu: seq[MenuItem]): string {.nimcall.}
+  RenderPostProc* = proc(title, content: string, date, modified: Time, menu: seq[MenuItem], tags: seq[string]): string {.nimcall.}
   RenderPageProc* = proc(title, content: string, date, modified: Time, menu: seq[MenuItem]): string {.nimcall.}
   RenderListProc* = proc(title: string, posts: seq[PostPreview], menu: seq[MenuItem], page, totalPages: int): string {.nimcall.}
 

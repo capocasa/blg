@@ -4,7 +4,7 @@
 ## Tags are implemented as subdirectories with symlinks.
 
 import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, dynlib]
-import blg/[renderer, types, dynload, datetime]
+import blg/[renderer, types, dynload, datetime, md]
 when defined(linux):
   import blg/daemon
 
@@ -30,8 +30,9 @@ proc loadMenuList(path: string, tags: seq[string]): seq[string] =
     if trimmed.len > 0 and not trimmed.startsWith("#"):
       result.add(trimmed)
 
-proc buildMenu(menuItems: seq[string], activeItem: string): seq[MenuItem] =
+proc buildMenu(menuItems: seq[string], activeItem: string, pageTitles: Table[string, string]): seq[MenuItem] =
   ## Convert menu.list entries to MenuItem objects with active state
+  ## pageTitles maps slug -> display title for pages
   for item in menuItems:
     if item == "index":
       result.add(MenuItem(url: "index" & suffix(), label: "Home", active: activeItem == "index"))
@@ -39,42 +40,48 @@ proc buildMenu(menuItems: seq[string], activeItem: string): seq[MenuItem] =
       let tag = item[4..^1]
       result.add(MenuItem(url: tag & suffix(), label: tag, active: activeItem == tag))
     else:
-      result.add(MenuItem(url: item & suffix(), label: item, active: activeItem == item))
+      let label = pageTitles.getOrDefault(item, item)
+      result.add(MenuItem(url: item & suffix(), label: label, active: activeItem == item))
 
 # Template rendering with dynload fallback
 proc doRenderPage(src: SourceFile, menu: seq[MenuItem]): string =
   if templateLib.renderPage != nil:
-    templateLib.renderPage(src.title, src.content, src.createdAt, src.modifiedAt, menu)
+    templateLib.renderPage(src.slug, src.content, src.createdAt, src.modifiedAt, menu)
   else:
     renderPage(src, menu)
 
 proc doRenderPost(src: SourceFile, menu: seq[MenuItem]): string =
   if templateLib.renderPost != nil:
-    templateLib.renderPost(src.title, src.content, src.createdAt, src.modifiedAt, menu)
+    templateLib.renderPost(src.slug, src.content, src.createdAt, src.modifiedAt, menu, src.tags)
   else:
     renderPost(src, menu)
 
-proc doRenderList(title: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int): string =
+proc doRenderList(listTitle: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int): string =
   if templateLib.renderList != nil:
     var previews: seq[PostPreview]
     for post in posts:
+      let url = post.slug & suffix()
       previews.add(PostPreview(
-        title: post.title,
-        preview: extractPreview(post.content),
-        url: post.title & suffix(),
-        date: post.createdAt
+        slug: post.slug,
+        preview: linkFirstH1(extractPreview(post.content), url),
+        url: url,
+        date: post.createdAt,
+        tags: post.tags
       ))
-    templateLib.renderList(title, previews, menu, page, totalPages)
+    templateLib.renderList(listTitle, previews, menu, page, totalPages)
   else:
-    renderList(title, posts, menu, page, totalPages, suffix())
+    renderList(listTitle, posts, menu, page, totalPages, suffix())
 
 proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
   ## Find all .md files in content directory and gather metadata
   for path in walkFiles(contentDir / "*.md"):
     let info = getFileInfo(path)
+    let content = readFile(path)
+    let slug = path.splitFile.name
     result.add(SourceFile(
       path: path,
-      title: path.splitFile.name,
+      slug: slug,
+      title: extractMarkdownTitle(content),
       createdAt: info.creationTime,
       modifiedAt: info.lastWriteTime,
     ))
@@ -130,10 +137,22 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let menuItems = loadMenuList(menuListPath, toSeq(tags.keys))
   let menuSet = menuItems.toHashSet
 
+  # Build page titles table for menu display
+  var pageTitles: Table[string, string]
+  for src in sources:
+    if src.title.len > 0:
+      pageTitles[src.slug] = src.title
+
+  # Populate tags on each source file
+  for i in 0..<sources.len:
+    for tagName, taggedFiles in tags:
+      if sources[i].slug in taggedFiles:
+        sources[i].tags.add(tagName)
+
   # Validate: pages shouldn't be named like tags
   for src in sources:
-    if src.title in tagNames:
-      echo "Error: page '", src.title, "' has same name as tag directory"
+    if src.slug in tagNames:
+      echo "Error: page '", src.slug, "' has same name as tag directory"
       quit(1)
 
   # Track menu.list mtime for list invalidation
@@ -149,21 +168,21 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let (content, wasChanged) = renderMarkdown(src.path, cacheDir, force)
     src.content = content
     if wasChanged:
-      changed.incl(src.title)
+      changed.incl(src.slug)
 
   # Determine which files are explicit pages vs posts
   var posts: seq[SourceFile]
   for src in sources:
-    if src.title notin menuSet:
+    if src.slug notin menuSet:
       posts.add(src)
 
   # Generate individual HTML files (only if source changed or output missing)
   var pagesBuilt, postsBuilt = 0
   for src in sources:
-    let outPath = outputDir / src.title & suffix()
-    if force or src.title in changed or not fileExists(outPath):
-      let menu = buildMenu(menuItems, src.title)
-      if src.title in menuSet:
+    let outPath = outputDir / src.slug & suffix()
+    if force or src.slug in changed or not fileExists(outPath):
+      let menu = buildMenu(menuItems, src.slug, pageTitles)
+      if src.slug in menuSet:
         writeFile(outPath, doRenderPage(src, menu))
         pagesBuilt += 1
       else:
@@ -172,10 +191,10 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
       echo "  ", outPath
 
   # Generate paginated index
-  let postsChanged = posts.anyIt(it.title in changed)
+  let postsChanged = posts.anyIt(it.slug in changed)
   let indexPages = paginate(posts, perPage)
   var listsBuilt = 0
-  let indexMenu = buildMenu(menuItems, "index")
+  let indexMenu = buildMenu(menuItems, "index", pageTitles)
   for p, pagePosts in indexPages:
     let outPath = listPagePath(outputDir, "index", p + 1)
     if force or postsChanged or needsRegen(outPath, menuMtime):
@@ -186,10 +205,10 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   # Generate paginated tag pages (flat: tutorials.html, tutorials-2.html)
   for tagName, taggedFiles in tags:
     let tagSet = taggedFiles.toHashSet
-    let tagPosts = posts.filterIt(it.title in tagSet)
-    let tagChanged = tagPosts.anyIt(it.title in changed)
+    let tagPosts = posts.filterIt(it.slug in tagSet)
+    let tagChanged = tagPosts.anyIt(it.slug in changed)
     let tagPages = paginate(tagPosts, perPage)
-    let tagMenu = buildMenu(menuItems, tagName)
+    let tagMenu = buildMenu(menuItems, tagName, pageTitles)
     for p, pagePosts in tagPages:
       let outPath = listPagePath(outputDir, tagName, p + 1)
       if force or tagChanged or needsRegen(outPath, menuMtime):
