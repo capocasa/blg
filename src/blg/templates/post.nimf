@@ -1,6 +1,6 @@
 #? stdtmpl | standard
 #import times
-#proc postTemplate*(title, content: string, date, modified: Time, menu: seq[MenuItem], tags: seq[string]): string =
+#proc postTemplate*(title, content: string, date, modified: Time, menu: seq[MenuItem], tags: seq[TagInfo]): string =
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,17 +23,17 @@
   </nav>
   <main>
     <article class="post">
+      <time datetime="${formatDate(date)}">${formatDate(date)}</time>
 #  if tags.len > 0:
       <div class="tags">
 #    for tag in tags:
-        <a href="${tag}.html">${tag}</a>
+        <a href="${tag.slug}.html">${tag.label}</a>
 #    end for
       </div>
 #  end if
       <div class="content">
 ${content}
       </div>
-      <time datetime="${formatDate(date)}">${formatDate(date)}</time>
     </article>
   </main>
 </body>
