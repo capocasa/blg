@@ -3,7 +3,7 @@
 ## One-shot blog generator from markdown files.
 ## Tags are implemented as subdirectories with symlinks.
 
-import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, dynlib]
+import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, dynlib, options]
 import blg/[renderer, types, dynload, datetime, md]
 when defined(linux):
   import blg/daemon
@@ -18,28 +18,58 @@ proc suffix(): string =
 proc loadMenuList(path: string, tags: seq[string]): seq[string] =
   ## Load menu.list file - each line is a markdown filename, tag, or 'index'
   ## If file doesn't exist, default to index + tags alphabetically
+  ## Returns entries in format: "tag:slug:label" or "page:slug:label"
+  ## All slugs are normalized to lowercase-hyphenated
+  var tagSlugs: Table[string, string]  # normalized slug -> original tag name
+  for tag in tags:
+    tagSlugs[toTagSlug(tag)] = tag
+
   if not fileExists(path):
-    result.add("index")
+    result.add("page:index:Home")
     var sortedTags = tags
     sortedTags.sort()
     for tag in sortedTags:
-      result.add("tag:" & tag)
+      let slug = toTagSlug(tag)
+      let label = toTitleCase(slug)
+      result.add("tag:" & slug & ":" & label)
     return
   for line in lines(path):
     let trimmed = line.strip()
     if trimmed.len > 0 and not trimmed.startsWith("#"):
-      result.add(trimmed)
+      let normalized = toTagSlug(trimmed)
+      if normalized in tagSlugs:
+        # It's a tag reference - use normalized slug for URL, original text for display
+        result.add("tag:" & normalized & ":" & trimmed)
+      else:
+        # It's a page reference - normalize slug, keep original for display
+        # Special case: "index" displays as "Home" by default
+        let label = if normalized == "index": "Home" else: trimmed
+        result.add("page:" & normalized & ":" & label)
 
 proc buildMenu(menuItems: seq[string], activeItem: string, pageTitles: Table[string, string]): seq[MenuItem] =
   ## Convert menu.list entries to MenuItem objects with active state
   ## pageTitles maps slug -> display title for pages
+  ## Format: "tag:slug:label" or "page:slug:label"
+  let normalizedActive = toTagSlug(activeItem)
   for item in menuItems:
-    if item == "index":
-      result.add(MenuItem(url: "index" & suffix(), label: "Home", active: activeItem == "index"))
-    elif item.startsWith("tag:"):
-      let tag = item[4..^1]
-      result.add(MenuItem(url: tag & suffix(), label: tag, active: activeItem == tag))
+    if item.startsWith("tag:"):
+      let rest = item[4..^1]
+      let colonPos = rest.find(':')
+      let (slug, label) = if colonPos >= 0:
+        (rest[0..<colonPos], rest[colonPos+1..^1])
+      else:
+        (rest, rest)  # fallback
+      result.add(MenuItem(url: slug & suffix(), label: label, active: normalizedActive == slug))
+    elif item.startsWith("page:"):
+      let rest = item[5..^1]
+      let colonPos = rest.find(':')
+      let (slug, label) = if colonPos >= 0:
+        (rest[0..<colonPos], rest[colonPos+1..^1])
+      else:
+        (rest, rest)  # fallback
+      result.add(MenuItem(url: slug & suffix(), label: label, active: normalizedActive == slug))
     else:
+      # Legacy fallback for raw entries
       let label = pageTitles.getOrDefault(item, item)
       result.add(MenuItem(url: item & suffix(), label: label, active: activeItem == item))
 
@@ -78,11 +108,13 @@ proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
     let info = getFileInfo(path)
     let content = readFile(path)
     let slug = path.splitFile.name
+    # Use date from markdown first line if present, else fallback to file mtime
+    let createdAt = extractIsoDate(content).get(info.lastWriteTime)
     result.add(SourceFile(
       path: path,
       slug: slug,
       title: extractMarkdownTitle(content),
-      createdAt: info.creationTime,
+      createdAt: createdAt,
       modifiedAt: info.lastWriteTime,
     ))
   result.sort(proc(a, b: SourceFile): int = cmp(b.createdAt, a.createdAt))
@@ -135,7 +167,16 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let tags = discoverTags(contentDir)
   let tagNames = toSeq(tags.keys).toHashSet
   let menuItems = loadMenuList(menuListPath, toSeq(tags.keys))
-  let menuSet = menuItems.toHashSet
+  # Extract page slugs from menu items for checking which sources are pages vs posts
+  var menuPageSlugs: HashSet[string]
+  for item in menuItems:
+    if item.startsWith("page:"):
+      let rest = item[5..^1]
+      let colonPos = rest.find(':')
+      if colonPos >= 0:
+        menuPageSlugs.incl(rest[0..<colonPos])
+      else:
+        menuPageSlugs.incl(rest)
 
   # Build page titles table for menu display
   var pageTitles: Table[string, string]
@@ -147,7 +188,8 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   for i in 0..<sources.len:
     for tagName, taggedFiles in tags:
       if sources[i].slug in taggedFiles:
-        sources[i].tags.add(tagName)
+        let slug = toTagSlug(tagName)
+        sources[i].tags.add(TagInfo(slug: slug, label: toTitleCase(slug)))
 
   # Validate: pages shouldn't be named like tags
   for src in sources:
@@ -173,7 +215,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   # Determine which files are explicit pages vs posts
   var posts: seq[SourceFile]
   for src in sources:
-    if src.slug notin menuSet:
+    if src.slug notin menuPageSlugs:
       posts.add(src)
 
   # Generate individual HTML files (only if source changed or output missing)
@@ -182,7 +224,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let outPath = outputDir / src.slug & suffix()
     if force or src.slug in changed or not fileExists(outPath):
       let menu = buildMenu(menuItems, src.slug, pageTitles)
-      if src.slug in menuSet:
+      if src.slug in menuPageSlugs:
         writeFile(outPath, doRenderPage(src, menu))
         pagesBuilt += 1
       else:
@@ -204,15 +246,16 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
 
   # Generate paginated tag pages (flat: tutorials.html, tutorials-2.html)
   for tagName, taggedFiles in tags:
+    let tagSlug = toTagSlug(tagName)
     let tagSet = taggedFiles.toHashSet
     let tagPosts = posts.filterIt(it.slug in tagSet)
     let tagChanged = tagPosts.anyIt(it.slug in changed)
     let tagPages = paginate(tagPosts, perPage)
-    let tagMenu = buildMenu(menuItems, tagName, pageTitles)
+    let tagMenu = buildMenu(menuItems, tagSlug, pageTitles)
     for p, pagePosts in tagPages:
-      let outPath = listPagePath(outputDir, tagName, p + 1)
+      let outPath = listPagePath(outputDir, tagSlug, p + 1)
       if force or tagChanged or needsRegen(outPath, menuMtime):
-        writeFile(outPath, doRenderList(tagName, pagePosts, tagMenu, p + 1, tagPages.len))
+        writeFile(outPath, doRenderList(toTitleCase(tagSlug), pagePosts, tagMenu, p + 1, tagPages.len))
         echo "  ", outPath
         listsBuilt += 1
 

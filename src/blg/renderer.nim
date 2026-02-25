@@ -1,9 +1,9 @@
 ## Markdown rendering with caching and template application
 
-import std/[os, times, strutils]
+import std/[os, times, strutils, options]
 import md, types, datetime
 
-proc isIsoDate(line: string): bool =
+proc isIsoDate*(line: string): bool =
   ## Check if line matches YYYY-MM-DD format
   let s = line.strip
   if s.len < 10: return false
@@ -17,6 +17,49 @@ proc isIsoDate(line: string): bool =
     # Must be end of line or followed by whitespace/newline
     return s.len == 10 or s[10] in Whitespace
   false
+
+proc extractIsoDate*(content: string): Option[Time] =
+  ## Extract ISO date from first line of content if present
+  var i = 0
+  while i < content.len and content[i] in Whitespace:
+    inc i
+
+  var lineEnd = i
+  while lineEnd < content.len and content[lineEnd] notin {'\n', '\r'}:
+    inc lineEnd
+
+  let firstLine = content[i..<lineEnd].strip
+  if not isIsoDate(firstLine):
+    return none(Time)
+
+  try:
+    let dateStr = firstLine[0..9]  # YYYY-MM-DD
+    result = some(parse(dateStr, "yyyy-MM-dd").toTime)
+  except:
+    result = none(Time)
+
+proc stripDateLine*(content: string): string =
+  ## Remove leading ISO date line from content (for rendering)
+  # Skip leading whitespace
+  var i = 0
+  while i < content.len and content[i] in Whitespace:
+    inc i
+
+  # Find end of first line
+  var lineEnd = i
+  while lineEnd < content.len and content[lineEnd] notin {'\n', '\r'}:
+    inc lineEnd
+
+  let firstLine = content[i..<lineEnd]
+  if not isIsoDate(firstLine):
+    return content
+
+  # Skip past the date line and any following whitespace
+  i = lineEnd
+  while i < content.len and content[i] in Whitespace:
+    inc i
+
+  content[i..^1]
 
 proc ensureDateLine(path: string, mtime: Time): bool =
   ## Check if file starts with an ISO date, if not prepend mtime date.
@@ -113,7 +156,7 @@ proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[conte
   # Auto-add date if missing (in-place edit)
   discard ensureDateLine(path, srcMtime)
 
-  let content = readFile(path)
+  let content = readFile(path).stripDateLine.insertReadMoreMarker
   let rendered = markdown(content)
   createDir(cacheDir)
   writeFile(cachePath, rendered)
@@ -132,17 +175,13 @@ proc linkFirstH1*(content: string, url: string): string =
   result = content[0..<tagEnd] & "<a href=\"" & url & "\">" & inner & "</a>" & content[h1End..^1]
 
 proc extractPreview*(content: string): string =
-  ## Extract content up to the first horizontal rule (<hr>)
-  let hrPatterns = ["<hr>", "<hr/>", "<hr />"]
-  var minPos = content.len
-  for pattern in hrPatterns:
-    let pos = content.find(pattern)
-    if pos >= 0 and pos < minPos:
-      minPos = pos
-  if minPos < content.len:
-    result = content[0..<minPos]
+  ## Extract content up to the read-more marker, falling back to first paragraph
+  let marker = "<read-more/>"
+  let markerPos = content.find(marker)
+  if markerPos >= 0:
+    result = content[0..<markerPos]
   else:
-    # Take first paragraph if no HR found
+    # Take first paragraph if no marker found
     let pEnd = content.find("</p>")
     if pEnd >= 0:
       result = content[0..pEnd+3]
