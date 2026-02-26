@@ -16,6 +16,7 @@ type
     slug*: string  # Filename without extension (for URLs)
     title*: string  # Display title extracted from content <h1>
     createdAt*: Time
+    createdAtHasTime*: bool  # Whether original date included time
     modifiedAt*: Time
     content*: string  # Rendered HTML content
     tags*: seq[TagInfo]  # Tags this post belongs to
@@ -29,6 +30,7 @@ type
   PostPreview* = object
     slug*, preview*, url*: string
     date*: Time
+    dateHasTime*: bool  # Whether original date included time
     tags*: seq[TagInfo]  # Tags for linking
 
   PageLink* = object
