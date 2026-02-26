@@ -65,11 +65,7 @@ nav > ul {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-sm) var(--space-md);
-}
-
-nav > ul > li:has(ul) {
-  display: contents;
+  gap: 0 var(--space-md);
 }
 
 nav a {
@@ -77,6 +73,7 @@ nav a {
   text-decoration: none;
   font-size: 0.9rem;
   letter-spacing: 0.02em;
+  line-height: 1;
   transition: color 0.15s;
   display: inline-flex;
   flex-direction: column;
@@ -474,26 +471,62 @@ footer {
 }
 
 /* Nested menu styling */
+nav > ul > li:has(ul) {
+  display: contents;
+}
+
+nav > ul > li:has(ul) > a::after {
+  content: "›";
+  display: inline-block;
+  margin-left: 0.2em;
+  font-size: 0.8em;
+  opacity: 0.4;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+nav > ul > li:has(> a.active) > a::after,
+nav > ul > li:has(ul a.active) > a::after {
+  transform: rotate(90deg);
+  opacity: 0.6;
+}
+
 nav > ul ul {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-md);
+  align-items: center;
+  gap: 0 var(--space-sm);
   list-style: none;
-  margin: 0;
+  margin: var(--space-xs) 0 0 0;
   padding: 0;
   width: 100%;
   order: 99;
-  visibility: hidden;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.2s ease, opacity 0.15s ease;
 }
 
+
 nav > ul ul a {
-  font-size: 0.85rem;
+  color: var(--text-muted);
+  position: relative;
+}
+
+
+nav > ul ul a:hover,
+nav > ul ul a.active {
+  color: var(--text);
+}
+
+nav > ul ul a.active {
+  font-weight: 600;
 }
 
 /* Show submenu when parent or any child is active */
 nav > ul > li:has(> a.active) ul,
 nav > ul > li:has(ul a.active) ul {
-  visibility: visible;
+  max-height: 2rem;
+  opacity: 1;
 }
 
 /* Print */
