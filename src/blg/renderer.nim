@@ -95,35 +95,6 @@ proc stripDateLine*(content: string): string =
 
   content[i..^1]
 
-proc ensureDateLine(path: string, mtime: Time): bool =
-  ## Check if file starts with an ISO date, if not prepend mtime date.
-  ## Returns true if file was modified.
-  let content = readFile(path)
-
-  # Find first non-whitespace line
-  var firstLineStart = 0
-  while firstLineStart < content.len and content[firstLineStart] in Whitespace:
-    inc firstLineStart
-
-  # Find end of first line
-  var firstLineEnd = firstLineStart
-  while firstLineEnd < content.len and content[firstLineEnd] notin {'\n', '\r'}:
-    inc firstLineEnd
-
-  let firstLine = if firstLineStart < content.len:
-    content[firstLineStart..<firstLineEnd]
-  else:
-    ""
-
-  if isIsoDate(firstLine):
-    return false
-
-  # Prepend ISO date
-  let dateStr = mtime.format("yyyy-MM-dd")
-  let newContent = dateStr & "\n\n" & content
-  writeFile(path, newContent)
-  true
-
 proc formatDate*(t: Time, hasTime = false): string =
   result = formatTime(t)
   if hasTime:
@@ -226,9 +197,6 @@ proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[conte
     let cacheMtime = getFileInfo(cachePath).lastWriteTime
     if cacheMtime > srcMtime:
       return (readFile(cachePath), false)
-
-  # Auto-add date if missing (in-place edit)
-  discard ensureDateLine(path, srcMtime)
 
   let content = readFile(path).stripDateLine.insertReadMoreMarker
   let rendered = markdown(content)
