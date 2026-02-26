@@ -1,4 +1,5 @@
 #? stdtmpl | standard
+#import strutils
 #proc renderMenuItemList(item: MenuItem): string =
 #  if item.active:
       <li><a href="${item.url}" class="active">${item.label}</a>
@@ -17,8 +18,9 @@ ${renderMenuItemList(child)}
 #proc listTemplate*(title: string, posts: seq[PostPreview], menus: seq[seq[MenuItem]], page, totalPages: int, urlSuffix = ".html", config: SiteConfig): string =
 #  let prevUrl = if page == 2: title & urlSuffix else: title & "-" & $(page-1) & urlSuffix
 #  let nextUrl = title & "-" & $(page+1) & urlSuffix
+#  let isHomePage = title.toLowerAscii == "index"
 #  let pageTitle = if totalPages > 1: title & " - Page " & $page else: title
-#  let fullTitle = if config.siteTitle.len > 0: pageTitle & " | " & config.siteTitle else: pageTitle
+#  let fullTitle = if isHomePage and config.siteTitle.len > 0 and config.siteDescription.len > 0: config.siteTitle & " - " & config.siteDescription elif isHomePage and config.siteTitle.len > 0: config.siteTitle elif config.siteTitle.len > 0: pageTitle & " - " & config.siteTitle else: pageTitle
 #  let pageLinks = generatePageLinks(title, page, totalPages, urlSuffix)
 #  let topMenu = if menus.len > 0: menus[0] else: @[]
 #  let bottomMenu = if menus.len > 1: menus[^1] else: @[]

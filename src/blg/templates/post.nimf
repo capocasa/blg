@@ -18,7 +18,7 @@ ${renderMenuItemPost(child)}
 #proc postTemplate*(title, content: string, date, modified: Time, menus: seq[seq[MenuItem]], tags: seq[TagInfo], config: SiteConfig): string =
 #  let topMenu = if menus.len > 0: menus[0] else: @[]
 #  let bottomMenu = if menus.len > 1: menus[^1] else: @[]
-#  let fullTitle = if config.siteTitle.len > 0: title & " | " & config.siteTitle else: title
+#  let fullTitle = if config.siteTitle.len > 0: title & " - " & config.siteTitle else: title
 <!DOCTYPE html>
 <html lang="en">
 <head>

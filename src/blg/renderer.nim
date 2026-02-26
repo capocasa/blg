@@ -334,10 +334,10 @@ proc processLinks*(html: string, config: SiteConfig): string =
       i = urlEnd + 1
 
 proc renderPage*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig): string =
-  pageTemplate(src.slug, src.content, src.createdAt, src.modifiedAt, menus, config).processLinks(config)
+  pageTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menus, config).processLinks(config)
 
 proc renderPost*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig): string =
-  postTemplate(src.slug, src.content, src.createdAt, src.modifiedAt, menus, src.tags, config).processLinks(config)
+  postTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menus, src.tags, config).processLinks(config)
 
 proc renderList*(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuItem]], page, totalPages: int, urlSuffix = ".html", config: SiteConfig): string =
   var previews: seq[PostPreview]

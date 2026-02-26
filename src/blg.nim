@@ -109,13 +109,13 @@ proc buildMenus(menuEntries: seq[seq[MenuEntry]], activeItem: string): seq[seq[M
 # Template rendering with dynload fallback
 proc doRenderPage(src: SourceFile, menus: seq[seq[MenuItem]]): string =
   if templateLib.renderPage != nil:
-    templateLib.renderPage(src.slug, src.content, src.createdAt, src.modifiedAt, menus).processLinks(siteConfig)
+    templateLib.renderPage(src.title, src.content, src.createdAt, src.modifiedAt, menus).processLinks(siteConfig)
   else:
     renderPage(src, menus, siteConfig)
 
 proc doRenderPost(src: SourceFile, menus: seq[seq[MenuItem]]): string =
   if templateLib.renderPost != nil:
-    templateLib.renderPost(src.slug, src.content, src.createdAt, src.modifiedAt, menus, src.tags).processLinks(siteConfig)
+    templateLib.renderPost(src.title, src.content, src.createdAt, src.modifiedAt, menus, src.tags).processLinks(siteConfig)
   else:
     renderPost(src, menus, siteConfig)
 
