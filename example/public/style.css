@@ -30,6 +30,7 @@
 html {
   font-size: 18px;
   -webkit-text-size-adjust: 100%;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -57,13 +58,18 @@ nav {
   padding-bottom: var(--space-md);
 }
 
-nav ul {
+nav > ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
   gap: var(--space-sm) var(--space-md);
+}
+
+nav > ul > li:has(ul) {
+  display: contents;
 }
 
 nav a {
@@ -72,6 +78,26 @@ nav a {
   font-size: 0.9rem;
   letter-spacing: 0.02em;
   transition: color 0.15s;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+nav a::before,
+nav a::after {
+  content: attr(data-text);
+  height: 0;
+  visibility: hidden;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+nav a::before {
+  font-weight: 400;
+}
+
+nav a::after {
+  font-weight: 600;
 }
 
 nav a:hover,
@@ -449,13 +475,25 @@ footer {
 
 /* Nested menu styling */
 nav > ul ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
   list-style: none;
-  padding-left: var(--space-md);
-  margin: var(--space-xs) 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  order: 99;
+  visibility: hidden;
 }
 
 nav > ul ul a {
   font-size: 0.85rem;
+}
+
+/* Show submenu when parent or any child is active */
+nav > ul > li:has(> a.active) ul,
+nav > ul > li:has(ul a.active) ul {
+  visibility: visible;
 }
 
 /* Print */

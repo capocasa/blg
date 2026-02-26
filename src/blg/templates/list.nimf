@@ -2,9 +2,9 @@
 #import strutils
 #proc renderMenuItemList(item: MenuItem): string =
 #  if item.active:
-      <li><a href="${item.url}" class="active">${item.label}</a>
+      <li><a href="${item.url}" class="active" data-text="${item.label}">${item.label}</a>
 #  else:
-      <li><a href="${item.url}">${item.label}</a>
+      <li><a href="${item.url}" data-text="${item.label}">${item.label}</a>
 #  end if
 #  if item.children.len > 0:
         <ul>
