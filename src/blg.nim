@@ -18,15 +18,16 @@ proc suffix(): string =
 
 type
   MenuEntry = object
-    kind: string  # "tag" or "page"
+    kind: string  # "tag", "page", or "text" (unlinked)
     slug: string
     label: string
     indent: int   # indentation level (0 = top, 1 = child, 2 = grandchild)
 
-proc loadMenuList(path: string, tags: seq[string]): seq[seq[MenuEntry]] =
+proc loadMenuList(path: string, tags: seq[string], pageSlugs: HashSet[string]): seq[seq[MenuEntry]] =
   ## Load menu.list file with support for:
   ## - Multiple menus separated by blank lines
   ## - Nested items via indentation (1 space = child of previous)
+  ## - Plain text items (neither tag nor page)
   ## Returns seq of menus, each containing entries with indent levels
   var tagSlugs: Table[string, string]  # normalized slug -> original tag name
   for tag in tags:
@@ -68,9 +69,13 @@ proc loadMenuList(path: string, tags: seq[string]): seq[seq[MenuEntry]] =
     let normalized = toTagSlug(trimmed)
     if normalized in tagSlugs:
       currentMenu.add(MenuEntry(kind: "tag", slug: normalized, label: trimmed, indent: indent))
-    else:
+    elif normalized in pageSlugs or normalized == "index":
+      # "index" is always valid (homepage list)
       let label = if normalized == "index": "Home" else: trimmed
       currentMenu.add(MenuEntry(kind: "page", slug: normalized, label: label, indent: indent))
+    else:
+      # Plain text - neither tag nor page
+      currentMenu.add(MenuEntry(kind: "text", slug: "", label: trimmed, indent: indent))
 
   # Don't forget the last menu
   if currentMenu.len > 0:
@@ -92,9 +97,9 @@ proc buildMenuItems(entries: seq[MenuEntry], activeItem: string, startIdx: var i
 
     inc startIdx
     var item = MenuItem(
-      url: entry.slug & suffix(),
+      url: if entry.kind == "text": "" else: entry.slug & suffix(),
       label: entry.label,
-      active: normalizedActive == entry.slug
+      active: entry.kind != "text" and normalizedActive == entry.slug
     )
     # Recursively collect children
     item.children = buildMenuItems(entries, activeItem, startIdx, entry.indent)
@@ -199,7 +204,13 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   var sources = discoverSourceFiles(contentDir)
   let tags = discoverTags(contentDir)
   let tagNames = toSeq(tags.keys).toHashSet
-  let menuEntries = loadMenuList(menuListPath, toSeq(tags.keys))
+
+  # Build set of existing source slugs for menu validation
+  var sourceSlugs: HashSet[string]
+  for src in sources:
+    sourceSlugs.incl(src.slug)
+
+  let menuEntries = loadMenuList(menuListPath, toSeq(tags.keys), sourceSlugs)
   # Extract page slugs from menu entries for checking which sources are pages vs posts
   var menuPageSlugs: HashSet[string]
   for menu in menuEntries:

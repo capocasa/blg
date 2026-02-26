@@ -1,7 +1,9 @@
 #? stdtmpl | standard
 #import times
 #proc renderMenuItemPost(item: MenuItem): string =
-#  if item.active:
+#  if item.url.len == 0:
+      <li>${item.label}
+#  elif item.active:
       <li><a href="${item.url}" class="active" data-text="${item.label}">${item.label}</a>
 #  else:
       <li><a href="${item.url}" data-text="${item.label}">${item.label}</a>
