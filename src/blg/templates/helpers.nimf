@@ -1,5 +1,5 @@
 #? stdtmpl | standard
-#proc renderMenuItem(item: MenuItem): string =
+#proc builtinRenderMenuItem(item: MenuItem): string =
 #  if item.url.len == 0:
       <li>${item.label}
 #  elif item.active:
@@ -10,13 +10,13 @@
 #  if item.children.len > 0:
         <ul>
 #    for child in item.children:
-${renderMenuItem(child)}
+${builtinRenderMenuItem(child)}
 #    end for
         </ul>
 #  end if
       </li>
 #end proc
-#proc renderHead(fullTitle: string, config: SiteConfig): string =
+#proc builtinRenderHead(fullTitle: string, config: SiteConfig): string =
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,18 +27,18 @@ ${renderMenuItem(child)}
   <link rel="stylesheet" href="style.css">
 </head>
 #end proc
-#proc renderTopNav(topMenu: seq[MenuItem]): string =
+#proc builtinRenderTopNav(topMenu: seq[MenuItem]): string =
 #  if topMenu.len > 0:
   <nav>
     <ul>
 #    for item in topMenu:
-${renderMenuItem(item)}
+${builtinRenderMenuItem(item)}
 #    end for
     </ul>
   </nav>
 #  end if
 #end proc
-#proc renderSiteHeader(config: SiteConfig): string =
+#proc builtinRenderSiteHeader(config: SiteConfig): string =
 #  if config.siteTitle.len > 0:
   <header class="site-header">
     <site-title>${config.siteTitle}</site-title>
@@ -48,13 +48,13 @@ ${renderMenuItem(item)}
   </header>
 #  end if
 #end proc
-#proc renderFooter(bottomMenu: seq[MenuItem], hasMultipleMenus: bool): string =
+#proc builtinRenderFooter(bottomMenu: seq[MenuItem], hasMultipleMenus: bool): string =
 #  if bottomMenu.len > 0 and hasMultipleMenus:
   <footer>
     <nav class="footer-nav">
       <ul>
 #    for item in bottomMenu:
-${renderMenuItem(item)}
+${builtinRenderMenuItem(item)}
 #    end for
       </ul>
     </nav>

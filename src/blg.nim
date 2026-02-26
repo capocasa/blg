@@ -202,6 +202,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   # Try to load custom templates
   let templatePath = cacheDir / DynlibFormat % "template"
   templateLib = loadTemplateLib(templatePath)
+  helperLib = templateLib  # Enable helper overrides in renderer
 
   let menuListPath = contentDir / "menu.list"
 

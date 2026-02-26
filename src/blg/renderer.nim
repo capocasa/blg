@@ -1,7 +1,9 @@
 ## Markdown rendering with caching and template application
 
 import std/[os, times, strutils, options]
-import md, types, datetime
+import md, types, datetime, dynload
+
+var helperLib*: TemplateLib  # Set by caller to enable helper overrides
 
 proc isIsoDate*(line: string): bool =
   ## Check if line matches YYYY-MM-DD format (optionally followed by HH:MM or HH:MM:SS)
@@ -177,6 +179,38 @@ proc generatePageLinks*(listSlug: string, current, total: int, urlSuffix = ".htm
       result.add(PageLink(page: p, url: pageUrl(p), current: p == current))
 
 include "templates/helpers.nimf"
+
+# Dispatch procs - check dynlib override, fallback to builtin
+proc renderMenuItem(item: MenuItem): string =
+  if helperLib.renderMenuItem != nil:
+    helperLib.renderMenuItem(item)
+  else:
+    builtinRenderMenuItem(item)
+
+proc renderHead(fullTitle: string, config: SiteConfig): string =
+  if helperLib.renderHead != nil:
+    helperLib.renderHead(fullTitle, config)
+  else:
+    builtinRenderHead(fullTitle, config)
+
+proc renderTopNav(topMenu: seq[MenuItem]): string =
+  if helperLib.renderTopNav != nil:
+    helperLib.renderTopNav(topMenu)
+  else:
+    builtinRenderTopNav(topMenu)
+
+proc renderSiteHeader(config: SiteConfig): string =
+  if helperLib.renderSiteHeader != nil:
+    helperLib.renderSiteHeader(config)
+  else:
+    builtinRenderSiteHeader(config)
+
+proc renderFooter(bottomMenu: seq[MenuItem], hasMultipleMenus: bool): string =
+  if helperLib.renderFooter != nil:
+    helperLib.renderFooter(bottomMenu, hasMultipleMenus)
+  else:
+    builtinRenderFooter(bottomMenu, hasMultipleMenus)
+
 include "templates/page.nimf"
 include "templates/post.nimf"
 include "templates/list.nimf"
