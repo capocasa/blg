@@ -1,0 +1,63 @@
+#? stdtmpl | standard
+#proc renderMenuItem(item: MenuItem): string =
+#  if item.url.len == 0:
+      <li>${item.label}
+#  elif item.active:
+      <li><a href="${item.url}" class="active" data-text="${item.label}">${item.label}</a>
+#  else:
+      <li><a href="${item.url}" data-text="${item.label}">${item.label}</a>
+#  end if
+#  if item.children.len > 0:
+        <ul>
+#    for child in item.children:
+${renderMenuItem(child)}
+#    end for
+        </ul>
+#  end if
+      </li>
+#end proc
+#proc renderHead(fullTitle: string, config: SiteConfig): string =
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+#  if config.siteDescription.len > 0:
+  <meta name="description" content="${config.siteDescription}">
+#  end if
+  <title>${fullTitle}</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+#end proc
+#proc renderTopNav(topMenu: seq[MenuItem]): string =
+#  if topMenu.len > 0:
+  <nav>
+    <ul>
+#    for item in topMenu:
+${renderMenuItem(item)}
+#    end for
+    </ul>
+  </nav>
+#  end if
+#end proc
+#proc renderSiteHeader(config: SiteConfig): string =
+#  if config.siteTitle.len > 0:
+  <header class="site-header">
+    <site-title>${config.siteTitle}</site-title>
+#    if config.siteDescription.len > 0:
+    <tag-line>${config.siteDescription}</tag-line>
+#    end if
+  </header>
+#  end if
+#end proc
+#proc renderFooter(bottomMenu: seq[MenuItem], hasMultipleMenus: bool): string =
+#  if bottomMenu.len > 0 and hasMultipleMenus:
+  <footer>
+    <nav class="footer-nav">
+      <ul>
+#    for item in bottomMenu:
+${renderMenuItem(item)}
+#    end for
+      </ul>
+    </nav>
+  </footer>
+#  end if
+#end proc

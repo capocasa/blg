@@ -4,7 +4,7 @@ import std/[os, times, strutils, options]
 import md, types, datetime
 
 proc isIsoDate*(line: string): bool =
-  ## Check if line matches YYYY-MM-DD format
+  ## Check if line matches YYYY-MM-DD format (optionally followed by HH:MM or HH:MM:SS)
   let s = line.strip
   if s.len < 10: return false
   # Check format: 4 digits, hyphen, 2 digits, hyphen, 2 digits
@@ -14,12 +14,35 @@ proc isIsoDate*(line: string): bool =
      s[5].isDigit and s[6].isDigit and
      s[7] == '-' and
      s[8].isDigit and s[9].isDigit:
-    # Must be end of line or followed by whitespace/newline
-    return s.len == 10 or s[10] in Whitespace
+    # Date only - must be end of line or followed by whitespace
+    if s.len == 10:
+      return true
+    # Must have whitespace after date
+    if s[10] notin Whitespace:
+      return false
+    # Check for optional time HH:MM
+    if s.len >= 16:
+      let timeStart = 11
+      if s[timeStart].isDigit and s[timeStart+1].isDigit and
+         s[timeStart+2] == ':' and
+         s[timeStart+3].isDigit and s[timeStart+4].isDigit:
+        # HH:MM format - check if end or has seconds
+        if s.len == 16:
+          return true
+        if s[16] in Whitespace:
+          return true
+        # Check for seconds :SS
+        if s.len >= 19 and s[16] == ':' and
+           s[17].isDigit and s[18].isDigit:
+          return s.len == 19 or s[19] in Whitespace
+        return false
+    # Just date followed by whitespace (no valid time)
+    return true
   false
 
-proc extractIsoDate*(content: string): Option[Time] =
-  ## Extract ISO date from first line of content if present
+proc extractIsoDate*(content: string): Option[(Time, bool)] =
+  ## Extract ISO date (and optional time) from first line of content if present
+  ## Returns (Time, hasTime) tuple where hasTime indicates if time was in the source
   var i = 0
   while i < content.len and content[i] in Whitespace:
     inc i
@@ -30,13 +53,22 @@ proc extractIsoDate*(content: string): Option[Time] =
 
   let firstLine = content[i..<lineEnd].strip
   if not isIsoDate(firstLine):
-    return none(Time)
+    return none((Time, bool))
 
   try:
+    # Try parsing with time (HH:MM:SS)
+    if firstLine.len >= 19 and firstLine[10] in Whitespace and firstLine[13] == ':' and firstLine[16] == ':':
+      let dateTimeStr = firstLine[0..9] & " " & firstLine[11..18]
+      return some((parse(dateTimeStr, "yyyy-MM-dd HH:mm:ss").toTime, true))
+    # Try parsing with time (HH:MM)
+    if firstLine.len >= 16 and firstLine[10] in Whitespace and firstLine[13] == ':':
+      let dateTimeStr = firstLine[0..9] & " " & firstLine[11..15]
+      return some((parse(dateTimeStr, "yyyy-MM-dd HH:mm").toTime, true))
+    # Date only
     let dateStr = firstLine[0..9]  # YYYY-MM-DD
-    result = some(parse(dateStr, "yyyy-MM-dd").toTime)
+    result = some((parse(dateStr, "yyyy-MM-dd").toTime, false))
   except:
-    result = none(Time)
+    result = none((Time, bool))
 
 proc stripDateLine*(content: string): string =
   ## Remove leading ISO date line from content (for rendering)
@@ -90,8 +122,15 @@ proc ensureDateLine(path: string, mtime: Time): bool =
   writeFile(path, newContent)
   true
 
-proc formatDate*(t: Time): string =
-  formatTime(t)
+proc formatDate*(t: Time, hasTime = false): string =
+  result = formatTime(t)
+  if hasTime:
+    let dt = t.local
+    # Check if seconds are non-zero to decide format
+    if dt.second != 0:
+      result &= " " & dt.format("HH:mm:ss")
+    else:
+      result &= " " & dt.format("HH:mm")
 
 proc generatePageLinks*(listSlug: string, current, total: int, urlSuffix = ".html"): seq[PageLink] =
   ## Generate page links with smart truncation
@@ -137,6 +176,7 @@ proc generatePageLinks*(listSlug: string, current, total: int, urlSuffix = ".htm
     else:
       result.add(PageLink(page: p, url: pageUrl(p), current: p == current))
 
+include "templates/helpers.nimf"
 include "templates/page.nimf"
 include "templates/post.nimf"
 include "templates/list.nimf"
@@ -337,7 +377,7 @@ proc renderPage*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig)
   pageTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menus, config).processLinks(config)
 
 proc renderPost*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig): string =
-  postTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menus, src.tags, config).processLinks(config)
+  postTemplate(src.title, src.content, src.createdAt, src.modifiedAt, src.createdAtHasTime, menus, src.tags, config).processLinks(config)
 
 proc renderList*(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuItem]], page, totalPages: int, urlSuffix = ".html", config: SiteConfig): string =
   var previews: seq[PostPreview]
@@ -348,6 +388,7 @@ proc renderList*(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuI
       preview: linkFirstH1(extractPreview(post.content), url),
       url: url,
       date: post.createdAt,
+      dateHasTime: post.createdAtHasTime,
       tags: post.tags
     ))
   listTemplate(listTitle, previews, menus, page, totalPages, urlSuffix, config).processLinks(config)

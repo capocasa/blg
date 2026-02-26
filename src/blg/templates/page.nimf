@@ -1,47 +1,15 @@
 #? stdtmpl | standard
 #import times
-#proc renderMenuItem(item: MenuItem): string =
-#  if item.url.len == 0:
-      <li>${item.label}
-#  elif item.active:
-      <li><a href="${item.url}" class="active" data-text="${item.label}">${item.label}</a>
-#  else:
-      <li><a href="${item.url}" data-text="${item.label}">${item.label}</a>
-#  end if
-#  if item.children.len > 0:
-        <ul>
-#    for child in item.children:
-${renderMenuItem(child)}
-#    end for
-        </ul>
-#  end if
-      </li>
-#end proc
 #proc pageTemplate*(title, content: string, date, modified: Time, menus: seq[seq[MenuItem]], config: SiteConfig): string =
 #  let topMenu = if menus.len > 0: menus[0] else: @[]
 #  let bottomMenu = if menus.len > 1: menus[^1] else: @[]
 #  let fullTitle = if config.siteTitle.len > 0: title & " - " & config.siteTitle else: title
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-#  if config.siteDescription.len > 0:
-  <meta name="description" content="${config.siteDescription}">
-#  end if
-  <title>${fullTitle}</title>
-  <link rel="stylesheet" href="style.css">
-</head>
+${renderHead(fullTitle, config)}
 <body>
-#  if topMenu.len > 0:
-  <nav>
-    <ul>
-#    for item in topMenu:
-${renderMenuItem(item)}
-#    end for
-    </ul>
-  </nav>
-#  end if
+${renderSiteHeader(config)}
+${renderTopNav(topMenu)}
   <main>
     <article class="page">
       <div class="content">
@@ -49,16 +17,6 @@ ${content}
       </div>
     </article>
   </main>
-#  if bottomMenu.len > 0 and menus.len > 1:
-  <footer>
-    <nav class="footer-nav">
-      <ul>
-#    for item in bottomMenu:
-${renderMenuItem(item)}
-#    end for
-      </ul>
-    </nav>
-  </footer>
-#  end if
+${renderFooter(bottomMenu, menus.len > 1)}
 </body>
 </html>

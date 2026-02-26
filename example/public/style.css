@@ -52,6 +52,27 @@ main {
   padding-block: var(--space-lg);
 }
 
+/* Site header */
+.site-header {
+  padding-block: var(--space-xl) var(--space-lg);
+  text-align: center;
+}
+
+site-title {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-xs);
+}
+
+tag-line {
+  display: block;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
 /* Navigation */
 nav {
   border-bottom: 1px solid var(--rule);
@@ -246,8 +267,16 @@ time {
 }
 
 .preview p {
-  margin: 0;
+  margin-block: var(--space-sm);
   color: var(--text-muted);
+}
+
+.preview > *:first-child {
+  margin-top: 0;
+}
+
+.preview > *:last-child {
+  margin-bottom: 0;
 }
 
 /* Read more link */
