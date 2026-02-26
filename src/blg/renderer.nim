@@ -188,13 +188,158 @@ proc extractPreview*(content: string): string =
     else:
       result = content
 
-proc renderPage*(src: SourceFile, menu: seq[MenuItem]): string =
-  pageTemplate(src.slug, src.content, src.createdAt, src.modifiedAt, menu)
+proc isExternalUrl(url: string, baseUrl: string): bool =
+  ## Check if URL is external (not relative, not starting with baseUrl)
+  if url.len == 0 or url[0] == '#':
+    return false  # anchor link
+  if url[0] == '/':
+    return false  # root-relative (internal)
+  if not url.startsWith("http://") and not url.startsWith("https://"):
+    return false  # relative path (internal)
+  if baseUrl.len > 0 and url.startsWith(baseUrl):
+    return false  # matches our base URL (internal)
+  return true
 
-proc renderPost*(src: SourceFile, menu: seq[MenuItem]): string =
-  postTemplate(src.slug, src.content, src.createdAt, src.modifiedAt, menu, src.tags)
+proc processLinks*(html: string, config: SiteConfig): string =
+  ## Post-process HTML to:
+  ## 1. Convert root-relative URLs to absolute when baseUrl is set
+  ## 2. Mark external links with class="external", target="_blank", rel="noopener noreferrer"
+  result = html
 
-proc renderList*(listTitle: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int, urlSuffix = ".html"): string =
+  if config.baseUrl.len == 0:
+    # No base URL - only process external links in href (not src)
+    # Look for <a with href="http(s)://..." that doesn't match any base
+    var i = 0
+    while i < result.len:
+      let aStart = result.find("<a ", i)
+      if aStart < 0:
+        break
+      let aEnd = result.find(">", aStart)
+      if aEnd < 0:
+        break
+
+      # Extract the <a ...> tag
+      let tag = result[aStart..aEnd]
+      let hrefStart = tag.find("href=\"")
+      if hrefStart >= 0:
+        let urlStart = hrefStart + 6
+        let urlEnd = tag.find("\"", urlStart)
+        if urlEnd > urlStart:
+          let url = tag[urlStart..<urlEnd]
+          if isExternalUrl(url, ""):
+            # Add external link attributes
+            var newTag = tag
+            # Add class
+            let classPos = newTag.find("class=\"")
+            if classPos >= 0:
+              let classInsert = classPos + 7
+              newTag = newTag[0..<classInsert] & "external " & newTag[classInsert..^1]
+            else:
+              newTag = newTag[0..1] & " class=\"external\"" & newTag[2..^1]
+            # Add target and rel if not present
+            if not newTag.contains("target="):
+              newTag = newTag[0..^2] & " target=\"_blank\">"
+            if not newTag.contains("rel="):
+              newTag = newTag[0..^2] & " rel=\"noopener noreferrer\">"
+            result = result[0..<aStart] & newTag & result[aEnd+1..^1]
+            i = aStart + newTag.len
+            continue
+
+      i = aEnd + 1
+  else:
+    # Have base URL - process both root-relative and external links
+    var i = 0
+    while i < result.len:
+      # Find href=" or src="
+      let hrefPos = result.find("href=\"", i)
+      let srcPos = result.find("src=\"", i)
+
+      var attrPos = -1
+      var attrLen = 0
+      var isHref = false
+
+      if hrefPos >= 0 and (srcPos < 0 or hrefPos < srcPos):
+        attrPos = hrefPos
+        attrLen = 6  # len of href="
+        isHref = true
+      elif srcPos >= 0:
+        attrPos = srcPos
+        attrLen = 5  # len of src="
+        isHref = false
+
+      if attrPos < 0:
+        break
+
+      let urlStart = attrPos + attrLen
+      let urlEnd = result.find("\"", urlStart)
+      if urlEnd < 0:
+        i = urlStart
+        continue
+
+      let url = result[urlStart..<urlEnd]
+
+      # Convert relative URLs to absolute (both /path and path.html forms)
+      if url.len > 0 and url[0] notin {'#', '/'} and
+         not url.startsWith("http://") and not url.startsWith("https://") and
+         not url.startsWith("mailto:") and not url.startsWith("data:"):
+        # Relative path like "index.html" -> "https://base.url/index.html"
+        let absoluteUrl = config.baseUrl & "/" & url
+        result = result[0..<urlStart] & absoluteUrl & result[urlEnd..^1]
+        i = urlStart + absoluteUrl.len + 1
+        continue
+
+      if url.len > 0 and url[0] == '/':
+        # Root-relative path like "/path" -> "https://base.url/path"
+        let absoluteUrl = config.baseUrl & url
+        result = result[0..<urlStart] & absoluteUrl & result[urlEnd..^1]
+        i = urlStart + absoluteUrl.len + 1
+        continue
+
+      # Mark external links (only for href, not src)
+      if isHref and isExternalUrl(url, config.baseUrl):
+        # Find the <a tag start
+        var tagStart = attrPos
+        while tagStart > 0 and result[tagStart] != '<':
+          dec tagStart
+        if tagStart >= 0 and result[tagStart..<tagStart+3] == "<a ":
+          let tagEnd = result.find(">", attrPos)
+          if tagEnd > attrPos:
+            var tag = result[tagStart..tagEnd]
+            var modified = false
+
+            # Add class
+            let classPos = tag.find("class=\"")
+            if classPos >= 0:
+              let classInsert = classPos + 7
+              tag = tag[0..<classInsert] & "external " & tag[classInsert..^1]
+              modified = true
+            else:
+              # Insert after <a
+              tag = tag[0..1] & " class=\"external\"" & tag[2..^1]
+              modified = true
+
+            # Add target and rel if not present
+            if not tag.contains("target="):
+              tag = tag[0..^2] & " target=\"_blank\">"
+              modified = true
+            if not tag.contains("rel="):
+              tag = tag[0..^2] & " rel=\"noopener noreferrer\">"
+              modified = true
+
+            if modified:
+              result = result[0..<tagStart] & tag & result[tagEnd+1..^1]
+              i = tagStart + tag.len
+              continue
+
+      i = urlEnd + 1
+
+proc renderPage*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig): string =
+  pageTemplate(src.slug, src.content, src.createdAt, src.modifiedAt, menus, config).processLinks(config)
+
+proc renderPost*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig): string =
+  postTemplate(src.slug, src.content, src.createdAt, src.modifiedAt, menus, src.tags, config).processLinks(config)
+
+proc renderList*(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuItem]], page, totalPages: int, urlSuffix = ".html", config: SiteConfig): string =
   var previews: seq[PostPreview]
   for post in posts:
     let url = post.slug & urlSuffix
@@ -205,4 +350,4 @@ proc renderList*(listTitle: string, posts: seq[SourceFile], menu: seq[MenuItem],
       date: post.createdAt,
       tags: post.tags
     ))
-  listTemplate(listTitle, previews, menu, page, totalPages, urlSuffix)
+  listTemplate(listTitle, previews, menus, page, totalPages, urlSuffix, config).processLinks(config)

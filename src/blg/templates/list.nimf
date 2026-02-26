@@ -1,30 +1,49 @@
 #? stdtmpl | standard
-#proc listTemplate*(title: string, posts: seq[PostPreview], menu: seq[MenuItem], page, totalPages: int): string =
-#  let prevUrl = if page == 2: title & ".html" else: title & "-" & $(page-1) & ".html"
-#  let nextUrl = title & "-" & $(page+1) & ".html"
+#proc renderMenuItemList(item: MenuItem): string =
+#  if item.active:
+      <li><a href="${item.url}" class="active">${item.label}</a>
+#  else:
+      <li><a href="${item.url}">${item.label}</a>
+#  end if
+#  if item.children.len > 0:
+        <ul>
+#    for child in item.children:
+${renderMenuItemList(child)}
+#    end for
+        </ul>
+#  end if
+      </li>
+#end proc
+#proc listTemplate*(title: string, posts: seq[PostPreview], menus: seq[seq[MenuItem]], page, totalPages: int, urlSuffix = ".html", config: SiteConfig): string =
+#  let prevUrl = if page == 2: title & urlSuffix else: title & "-" & $(page-1) & urlSuffix
+#  let nextUrl = title & "-" & $(page+1) & urlSuffix
 #  let pageTitle = if totalPages > 1: title & " - Page " & $page else: title
+#  let fullTitle = if config.siteTitle.len > 0: pageTitle & " | " & config.siteTitle else: pageTitle
+#  let pageLinks = generatePageLinks(title, page, totalPages, urlSuffix)
+#  let topMenu = if menus.len > 0: menus[0] else: @[]
+#  let bottomMenu = if menus.len > 1: menus[^1] else: @[]
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${pageTitle}</title>
+#  if config.siteDescription.len > 0:
+  <meta name="description" content="${config.siteDescription}">
+#  end if
+  <title>${fullTitle}</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+#  if topMenu.len > 0:
   <nav>
     <ul>
-#  for item in menu:
-#    if item.active:
-      <li><a href="${item.url}" class="active">${item.label}</a></li>
-#    else:
-      <li><a href="${item.url}">${item.label}</a></li>
-#    end if
-#  end for
+#    for item in topMenu:
+${renderMenuItemList(item)}
+#    end for
     </ul>
   </nav>
+#  end if
   <main>
-    <h1>${title}</h1>
     <ul class="post-list">
 #  for post in posts:
       <li>
@@ -32,7 +51,7 @@
 #    if post.tags.len > 0:
           <div class="tags">
 #      for tag in post.tags:
-            <a href="${tag}.html">${tag}</a>
+            <a href="${tag.slug}.html">${tag.label}</a>
 #      end for
           </div>
 #    end if
@@ -48,14 +67,37 @@ ${post.preview}
 #  if totalPages > 1:
     <nav class="pagination">
 #    if page > 1:
-      <a href="${prevUrl}" rel="prev">Previous</a>
+      <a href="${prevUrl}" rel="prev">&laquo;</a>
+#    else:
+      <span class="disabled">&laquo;</span>
 #    end if
-      <span>Page ${page} of ${totalPages}</span>
+#    for link in pageLinks:
+#      if link.ellipsis:
+      <span class="ellipsis">&hellip;</span>
+#      elif link.current:
+      <span class="current">${link.page}</span>
+#      else:
+      <a href="${link.url}">${link.page}</a>
+#      end if
+#    end for
 #    if page < totalPages:
-      <a href="${nextUrl}" rel="next">Next</a>
+      <a href="${nextUrl}" rel="next">&raquo;</a>
+#    else:
+      <span class="disabled">&raquo;</span>
 #    end if
     </nav>
 #  end if
   </main>
+#  if bottomMenu.len > 0 and menus.len > 1:
+  <footer>
+    <nav class="footer-nav">
+      <ul>
+#    for item in bottomMenu:
+${renderMenuItemList(item)}
+#    end for
+      </ul>
+    </nav>
+  </footer>
+#  end if
 </body>
 </html>

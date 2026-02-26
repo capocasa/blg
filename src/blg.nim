@@ -3,90 +3,123 @@
 ## One-shot blog generator from markdown files.
 ## Tags are implemented as subdirectories with symlinks.
 
-import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, dynlib, options]
+import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, options]
 import blg/[renderer, types, dynload, datetime, md]
 when defined(linux):
   import blg/daemon
 
 var templateLib: TemplateLib
 var ext: string = "html"  # file extension, set from BLG_EXT
+var siteConfig: SiteConfig
 
 proc suffix(): string =
   ## Returns ".ext" or "" if ext is empty
   if ext.len > 0: "." & ext else: ""
 
-proc loadMenuList(path: string, tags: seq[string]): seq[string] =
-  ## Load menu.list file - each line is a markdown filename, tag, or 'index'
-  ## If file doesn't exist, default to index + tags alphabetically
-  ## Returns entries in format: "tag:slug:label" or "page:slug:label"
-  ## All slugs are normalized to lowercase-hyphenated
+type
+  MenuEntry = object
+    kind: string  # "tag" or "page"
+    slug: string
+    label: string
+    indent: int   # indentation level (0 = top, 1 = child, 2 = grandchild)
+
+proc loadMenuList(path: string, tags: seq[string]): seq[seq[MenuEntry]] =
+  ## Load menu.list file with support for:
+  ## - Multiple menus separated by blank lines
+  ## - Nested items via indentation (1 space = child of previous)
+  ## Returns seq of menus, each containing entries with indent levels
   var tagSlugs: Table[string, string]  # normalized slug -> original tag name
   for tag in tags:
     tagSlugs[toTagSlug(tag)] = tag
 
   if not fileExists(path):
-    result.add("page:index:Home")
+    var defaultMenu: seq[MenuEntry]
+    defaultMenu.add(MenuEntry(kind: "page", slug: "index", label: "Home", indent: 0))
     var sortedTags = tags
     sortedTags.sort()
     for tag in sortedTags:
       let slug = toTagSlug(tag)
-      let label = toTitleCase(slug)
-      result.add("tag:" & slug & ":" & label)
+      defaultMenu.add(MenuEntry(kind: "tag", slug: slug, label: toTitleCase(slug), indent: 0))
+    result.add(defaultMenu)
     return
-  for line in lines(path):
-    let trimmed = line.strip()
-    if trimmed.len > 0 and not trimmed.startsWith("#"):
-      let normalized = toTagSlug(trimmed)
-      if normalized in tagSlugs:
-        # It's a tag reference - use normalized slug for URL, original text for display
-        result.add("tag:" & normalized & ":" & trimmed)
-      else:
-        # It's a page reference - normalize slug, keep original for display
-        # Special case: "index" displays as "Home" by default
-        let label = if normalized == "index": "Home" else: trimmed
-        result.add("page:" & normalized & ":" & label)
 
-proc buildMenu(menuItems: seq[string], activeItem: string, pageTitles: Table[string, string]): seq[MenuItem] =
-  ## Convert menu.list entries to MenuItem objects with active state
-  ## pageTitles maps slug -> display title for pages
-  ## Format: "tag:slug:label" or "page:slug:label"
-  let normalizedActive = toTagSlug(activeItem)
-  for item in menuItems:
-    if item.startsWith("tag:"):
-      let rest = item[4..^1]
-      let colonPos = rest.find(':')
-      let (slug, label) = if colonPos >= 0:
-        (rest[0..<colonPos], rest[colonPos+1..^1])
+  var currentMenu: seq[MenuEntry]
+  for line in lines(path):
+    # Check for blank line (menu separator)
+    if line.strip().len == 0:
+      if currentMenu.len > 0:
+        result.add(currentMenu)
+        currentMenu = @[]
+      continue
+
+    # Skip comments
+    let trimmed = line.strip()
+    if trimmed.startsWith("#"):
+      continue
+
+    # Count leading spaces for indentation
+    var indent = 0
+    for c in line:
+      if c == ' ':
+        inc indent
       else:
-        (rest, rest)  # fallback
-      result.add(MenuItem(url: slug & suffix(), label: label, active: normalizedActive == slug))
-    elif item.startsWith("page:"):
-      let rest = item[5..^1]
-      let colonPos = rest.find(':')
-      let (slug, label) = if colonPos >= 0:
-        (rest[0..<colonPos], rest[colonPos+1..^1])
-      else:
-        (rest, rest)  # fallback
-      result.add(MenuItem(url: slug & suffix(), label: label, active: normalizedActive == slug))
+        break
+
+    let normalized = toTagSlug(trimmed)
+    if normalized in tagSlugs:
+      currentMenu.add(MenuEntry(kind: "tag", slug: normalized, label: trimmed, indent: indent))
     else:
-      # Legacy fallback for raw entries
-      let label = pageTitles.getOrDefault(item, item)
-      result.add(MenuItem(url: item & suffix(), label: label, active: activeItem == item))
+      let label = if normalized == "index": "Home" else: trimmed
+      currentMenu.add(MenuEntry(kind: "page", slug: normalized, label: label, indent: indent))
+
+  # Don't forget the last menu
+  if currentMenu.len > 0:
+    result.add(currentMenu)
+
+proc buildMenuItems(entries: seq[MenuEntry], activeItem: string, startIdx: var int, parentIndent: int): seq[MenuItem] =
+  ## Recursively build MenuItem tree from flat entries with indentation
+  let normalizedActive = toTagSlug(activeItem)
+  while startIdx < entries.len:
+    let entry = entries[startIdx]
+    if entry.indent <= parentIndent and startIdx > 0:
+      # This entry belongs to a parent level, stop here
+      break
+
+    if entry.indent > parentIndent + 1:
+      # Skip entries that are too deeply indented (malformed)
+      inc startIdx
+      continue
+
+    inc startIdx
+    var item = MenuItem(
+      url: entry.slug & suffix(),
+      label: entry.label,
+      active: normalizedActive == entry.slug
+    )
+    # Recursively collect children
+    item.children = buildMenuItems(entries, activeItem, startIdx, entry.indent)
+    result.add(item)
+
+proc buildMenus(menuEntries: seq[seq[MenuEntry]], activeItem: string): seq[seq[MenuItem]] =
+  ## Convert all menus from entries to MenuItem objects with active state
+  for entries in menuEntries:
+    var idx = 0
+    result.add(buildMenuItems(entries, activeItem, idx, -1))
 
 # Template rendering with dynload fallback
-proc doRenderPage(src: SourceFile, menu: seq[MenuItem]): string =
+proc doRenderPage(src: SourceFile, menus: seq[seq[MenuItem]]): string =
   if templateLib.renderPage != nil:
-    templateLib.renderPage(src.slug, src.content, src.createdAt, src.modifiedAt, menu)
+    templateLib.renderPage(src.slug, src.content, src.createdAt, src.modifiedAt, menus).processLinks(siteConfig)
   else:
-    renderPage(src, menu)
+    renderPage(src, menus, siteConfig)
 
-proc doRenderPost(src: SourceFile, menu: seq[MenuItem]): string =
+proc doRenderPost(src: SourceFile, menus: seq[seq[MenuItem]]): string =
   if templateLib.renderPost != nil:
-    templateLib.renderPost(src.slug, src.content, src.createdAt, src.modifiedAt, menu, src.tags)
+    templateLib.renderPost(src.slug, src.content, src.createdAt, src.modifiedAt, menus, src.tags).processLinks(siteConfig)
   else:
-    renderPost(src, menu)
+    renderPost(src, menus, siteConfig)
 
-proc doRenderList(listTitle: string, posts: seq[SourceFile], menu: seq[MenuItem], page, totalPages: int): string =
+proc doRenderList(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuItem]], page, totalPages: int): string =
   if templateLib.renderList != nil:
     var previews: seq[PostPreview]
     for post in posts:
@@ -98,9 +131,9 @@ proc doRenderList(listTitle: string, posts: seq[SourceFile], menu: seq[MenuItem]
         date: post.createdAt,
         tags: post.tags
       ))
-    templateLib.renderList(listTitle, previews, menu, page, totalPages)
+    templateLib.renderList(listTitle, previews, menus, page, totalPages).processLinks(siteConfig)
   else:
-    renderList(listTitle, posts, menu, page, totalPages, suffix())
+    renderList(listTitle, posts, menus, page, totalPages, suffix(), siteConfig)
 
 proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
   ## Find all .md files in content directory and gather metadata
@@ -166,23 +199,13 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   var sources = discoverSourceFiles(contentDir)
   let tags = discoverTags(contentDir)
   let tagNames = toSeq(tags.keys).toHashSet
-  let menuItems = loadMenuList(menuListPath, toSeq(tags.keys))
-  # Extract page slugs from menu items for checking which sources are pages vs posts
+  let menuEntries = loadMenuList(menuListPath, toSeq(tags.keys))
+  # Extract page slugs from menu entries for checking which sources are pages vs posts
   var menuPageSlugs: HashSet[string]
-  for item in menuItems:
-    if item.startsWith("page:"):
-      let rest = item[5..^1]
-      let colonPos = rest.find(':')
-      if colonPos >= 0:
-        menuPageSlugs.incl(rest[0..<colonPos])
-      else:
-        menuPageSlugs.incl(rest)
-
-  # Build page titles table for menu display
-  var pageTitles: Table[string, string]
-  for src in sources:
-    if src.title.len > 0:
-      pageTitles[src.slug] = src.title
+  for menu in menuEntries:
+    for entry in menu:
+      if entry.kind == "page":
+        menuPageSlugs.incl(entry.slug)
 
   # Populate tags on each source file
   for i in 0..<sources.len:
@@ -223,12 +246,12 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   for src in sources:
     let outPath = outputDir / src.slug & suffix()
     if force or src.slug in changed or not fileExists(outPath):
-      let menu = buildMenu(menuItems, src.slug, pageTitles)
+      let menus = buildMenus(menuEntries, src.slug)
       if src.slug in menuPageSlugs:
-        writeFile(outPath, doRenderPage(src, menu))
+        writeFile(outPath, doRenderPage(src, menus))
         pagesBuilt += 1
       else:
-        writeFile(outPath, doRenderPost(src, menu))
+        writeFile(outPath, doRenderPost(src, menus))
         postsBuilt += 1
       echo "  ", outPath
 
@@ -236,11 +259,11 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let postsChanged = posts.anyIt(it.slug in changed)
   let indexPages = paginate(posts, perPage)
   var listsBuilt = 0
-  let indexMenu = buildMenu(menuItems, "index", pageTitles)
+  let indexMenus = buildMenus(menuEntries, "index")
   for p, pagePosts in indexPages:
     let outPath = listPagePath(outputDir, "index", p + 1)
     if force or postsChanged or needsRegen(outPath, menuMtime):
-      writeFile(outPath, doRenderList("index", pagePosts, indexMenu, p + 1, indexPages.len))
+      writeFile(outPath, doRenderList("index", pagePosts, indexMenus, p + 1, indexPages.len))
       echo "  ", outPath
       listsBuilt += 1
 
@@ -251,11 +274,11 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let tagPosts = posts.filterIt(it.slug in tagSet)
     let tagChanged = tagPosts.anyIt(it.slug in changed)
     let tagPages = paginate(tagPosts, perPage)
-    let tagMenu = buildMenu(menuItems, tagSlug, pageTitles)
+    let tagMenus = buildMenus(menuEntries, tagSlug)
     for p, pagePosts in tagPages:
       let outPath = listPagePath(outputDir, tagSlug, p + 1)
       if force or tagChanged or needsRegen(outPath, menuMtime):
-        writeFile(outPath, doRenderList(toTitleCase(tagSlug), pagePosts, tagMenu, p + 1, tagPages.len))
+        writeFile(outPath, doRenderList(toTitleCase(tagSlug), pagePosts, tagMenus, p + 1, tagPages.len))
         echo "  ", outPath
         listsBuilt += 1
 
@@ -292,7 +315,9 @@ Options:
   echo """  -e, --env <file>     Env file (default: .env)
   -h, --help           Show this help
 
-Environment variables: BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT, BLG_DATE_FORMAT
+Environment variables:
+  BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT, BLG_DATE_FORMAT
+  BLG_BASE_URL (prepend to relative URLs), BLG_SITE_TITLE, BLG_SITE_DESCRIPTION
   Date presets: iso, us-long, us-short, eu-long, eu-medium, eu-short, uk (or custom format)
 
 Precedence: option > env var > .env file > default"""
@@ -325,6 +350,7 @@ when isMainModule:
   # Load .env file, then read env vars
   loadEnvFile(envFile)
   initDateFormat()  # Must be after loadEnvFile
+  siteConfig = loadSiteConfig()
   if existsEnv("BLG_INPUT"): inputDir = getEnv("BLG_INPUT")
   if existsEnv("BLG_OUTPUT"): outputDir = getEnv("BLG_OUTPUT")
   if existsEnv("BLG_CACHE"): cacheDir = getEnv("BLG_CACHE")
