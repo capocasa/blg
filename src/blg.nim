@@ -8,6 +8,8 @@ import blg/[renderer, types, dynload, datetime, md]
 when defined(linux):
   import blg/daemon
 
+const defaultThemeCss = staticRead("../assets/default-theme.css")
+
 var templateLib: TemplateLib
 var ext: string = "html"  # file extension, set from BLG_EXT
 var siteConfig: SiteConfig
@@ -147,12 +149,14 @@ proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
     let content = readFile(path)
     let slug = path.splitFile.name
     # Use date from markdown first line if present, else fallback to file mtime
-    let createdAt = extractIsoDate(content).get(info.lastWriteTime)
+    let extracted = extractIsoDate(content)
+    let (createdAt, hasTime) = if extracted.isSome: extracted.get else: (info.lastWriteTime, false)
     result.add(SourceFile(
       path: path,
       slug: slug,
       title: extractMarkdownTitle(content),
       createdAt: createdAt,
+      createdAtHasTime: hasTime,
       modifiedAt: info.lastWriteTime,
     ))
   result.sort(proc(a, b: SourceFile): int = cmp(b.createdAt, a.createdAt))
@@ -295,6 +299,46 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
 
   echo "Built: ", pagesBuilt, " pages, ", postsBuilt, " posts, ", listsBuilt, " lists (", changed.len, " sources changed)"
 
+proc initPublicDir(outputDir: string) =
+  ## Initialize public directory with default theme if it doesn't exist
+  createDir(outputDir)
+  let stylePath = outputDir / "style.css"
+  if not fileExists(stylePath):
+    writeFile(stylePath, defaultThemeCss)
+    echo "Created default theme: ", stylePath
+
+proc validateInputDir(inputDir: string) =
+  ## Ensure input directory exists and has at least one markdown file
+  if not dirExists(inputDir):
+    echo "Error: input directory '", inputDir, "' does not exist"
+    quit(1)
+  var hasMd = false
+  for path in walkFiles(inputDir / "*.md"):
+    hasMd = true
+    break
+  if not hasMd:
+    echo "Error: no markdown files found in '", inputDir, "'"
+    quit(1)
+
+proc validateDirAccess(dir, name: string) =
+  ## Check directory is readable/writable, create if needed
+  if dirExists(dir):
+    # Check readable
+    try:
+      for _ in walkDir(dir):
+        break
+    except OSError:
+      echo "Error: ", name, " directory '", dir, "' is not readable"
+      quit(1)
+    # Check writable by testing file creation
+    let testFile = dir / ".blg-access-test"
+    try:
+      writeFile(testFile, "")
+      removeFile(testFile)
+    except IOError, OSError:
+      echo "Error: ", name, " directory '", dir, "' is not writable"
+      quit(1)
+
 proc loadEnvFile(path: string) =
   ## Load .env file into environment variables
   if not fileExists(path):
@@ -417,6 +461,18 @@ when isMainModule:
     of cmdArgument:
       echo "Unexpected argument: ", key; quit(1)
     of cmdEnd: discard
+
+  # Validate input directory
+  validateInputDir(inputDir)
+
+  # Initialize public dir with default theme if it doesn't exist
+  if not dirExists(outputDir):
+    initPublicDir(outputDir)
+
+  # Validate cache and output directories are accessible
+  createDir(cacheDir)
+  validateDirAccess(cacheDir, "cache")
+  validateDirAccess(outputDir, "output")
 
   when defined(linux):
     if daemonMode:
