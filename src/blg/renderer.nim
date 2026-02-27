@@ -1,24 +1,6 @@
 ## Markdown rendering with caching and template application
 ## Handles date extraction, HTML caching, link processing, and page generation.
-##
-## Templates
-## ---------
-##
-## HTML output is generated via `.nimf` source filters (Nim's compile-time templating).
-## These are included at compile time and become native code.
-##
-## **helpers.nimf** - Overridable helper procs:
-## - `builtinRenderMenuItem` - Single nav item with nested children
-## - `builtinRenderHead` - HTML <head> with meta tags, title, CSS link
-## - `builtinRenderTopNav` - Top navigation bar
-## - `builtinRenderSiteHeader` - Site title and tagline
-## - `builtinRenderFooter` - Footer with optional secondary nav
-##
-## **page.nimf** - `pageTemplate` for static pages (no date/tags)
-##
-## **post.nimf** - `postTemplate` for blog posts (with date and tags)
-##
-## **list.nimf** - `listTemplate` for paginated post listings (index, tag pages)
+## See `blg <blg.html>`_ for template override instructions.
 
 import std/[os, times, strutils, options]
 import md, types, datetime, dynload

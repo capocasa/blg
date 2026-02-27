@@ -43,11 +43,30 @@
 ## ---------------
 ##
 ## Templates use Nim source filters (`.nimf`). They compile to native code,
-## not runtime interpretation. Override by placing a `template.so` in the
-## cache directory, built from your custom `templates.nim`.
+## not runtime interpretation.
 ##
-## Overridable helpers: `renderMenuItem`, `renderHead`, `renderTopNav`,
-## `renderSiteHeader`, `renderFooter`
+## **Built-in templates:**
+##
+## - `helpers.nimf` - Menu items, head, nav, header, footer
+## - `page.nimf` - Static pages (no date/tags)
+## - `post.nimf` - Blog posts (with date and tags)
+## - `list.nimf` - Paginated post listings
+##
+## **Overridable procs** (export with `{.exportc, dynlib.}`):
+##
+## .. code-block:: nim
+##
+##   proc renderMenuItem*(item: MenuItem): string {.exportc, dynlib.}
+##   proc renderHead*(fullTitle: string, config: SiteConfig): string {.exportc, dynlib.}
+##   proc renderTopNav*(topMenu: seq[MenuItem]): string {.exportc, dynlib.}
+##   proc renderSiteHeader*(config: SiteConfig): string {.exportc, dynlib.}
+##   proc renderFooter*(bottomMenu: seq[MenuItem], hasMultipleMenus: bool): string {.exportc, dynlib.}
+##
+## **Compile and install:**
+##
+## .. code-block:: bash
+##
+##   nim c --app:lib -o:cache/libtemplate.so template.nim
 ##
 ## Dependencies
 ## ------------

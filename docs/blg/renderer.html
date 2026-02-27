@@ -51,8 +51,7 @@
       </select>
     </div>
     <ul class="simple simple-toc" id="toc-list">
-  <li><a class="reference" id="templates_toc" href="#templates">Templates</a></li>
-<li>
+  <li>
   <a class="reference reference-toplevel" href="#6" id="56">Imports</a>
 </li>
 <li>
@@ -152,19 +151,7 @@
     
     <div id="tocRoot"></div>
     
-    <p class="module-desc">Markdown rendering with caching and template application Handles date extraction, HTML caching, link processing, and page generation.
-<h1><a class="toc-backref" id="templates" href="#templates">Templates</a></h1><p>HTML output is generated via <tt class="docutils literal"><span class="pre"><span class="Operator">.</span><span class="Identifier">nimf</span></span></tt> source filters (Nim's compile-time templating). These are included at compile time and become native code.</p>
-<p><strong>helpers.nimf</strong> - Overridable helper procs:</p>
-<ul class="simple"><li><tt class="docutils literal"><span class="pre"><span class="Identifier">builtinRenderMenuItem</span></span></tt> - Single nav item with nested children</li>
-<li><tt class="docutils literal"><span class="pre"><span class="Identifier">builtinRenderHead</span></span></tt> - HTML &lt;head&gt; with meta tags, title, CSS link</li>
-<li><tt class="docutils literal"><span class="pre"><span class="Identifier">builtinRenderTopNav</span></span></tt> - Top navigation bar</li>
-<li><tt class="docutils literal"><span class="pre"><span class="Identifier">builtinRenderSiteHeader</span></span></tt> - Site title and tagline</li>
-<li><tt class="docutils literal"><span class="pre"><span class="Identifier">builtinRenderFooter</span></span></tt> - Footer with optional secondary nav</li>
-</ul>
-<p><strong>page.nimf</strong> - <tt class="docutils literal"><span class="pre"><span class="Identifier">pageTemplate</span></span></tt> for static pages (no date/tags)</p>
-<p><strong>post.nimf</strong> - <tt class="docutils literal"><span class="pre"><span class="Identifier">postTemplate</span></span></tt> for blog posts (with date and tags)</p>
-<p><strong>list.nimf</strong> - <tt class="docutils literal"><span class="pre"><span class="Identifier">listTemplate</span></span></tt> for paginated post listings (index, tag pages)</p>
-</p>
+    <p class="module-desc">Markdown rendering with caching and template application Handles date extraction, HTML caching, link processing, and page generation. See <a class="reference external" href="blg.html">blg</a> for template override instructions.</p>
     <div class="section" id="6">
   <h1><a class="toc-backref" href="#6">Imports</a></h1>
   <dl class="item">
@@ -385,7 +372,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-02-27 13:09:55 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-02-27 13:16:03 UTC</small>
       </div>
     </div>
   </div>
