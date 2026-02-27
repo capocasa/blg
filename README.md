@@ -1,5 +1,8 @@
 # blg
 
+![blg screenshot](docs/sc.png)
+![blg screenshot 2](docs/sc2.png)
+
 blg is a simple but enjoyable blog generator (for now) especially for command line users.
 
 # Installation
@@ -276,6 +279,8 @@ Here's where it gets fancy. blg uses Nim source code filters as templates, simpl
 For this reason, blg has an override mechanism for all templating procedures. You can find the full list by looking into src/blg/templates/helpers.nimf. These are all procedures that return strings.
 
 So what you do is you create a directory called templates in your blog folder, and add file called templates.nim. In there, you can copy any template procedure from the source, and edit it to do what you want it to do.
+
+See docs for procedure definitions.
 
 ## Fancy plans
 
