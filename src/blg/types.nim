@@ -1,47 +1,56 @@
 ## Common types for blg
+## Shared data structures for source files, menus, and site config.
 
 import std/[times, strutils, unicode, envvars]
 
 type
   SiteConfig* = object
-    baseUrl*: string       # BLG_BASE_URL - prepended to relative URLs (operational)
-    siteTitle*: string     # BLG_SITE_TITLE - site name for <title>
-    siteDescription*: string  # BLG_SITE_DESCRIPTION - meta description
+    ## Site-wide settings loaded from environment variables.
+    baseUrl*: string          ## Prepended to relative URLs for absolute links
+    siteTitle*: string        ## Site name shown in header and <title>
+    siteDescription*: string  ## Meta description for SEO
 
   TagInfo* = object
-    slug*, label*: string  # slug for URL, label for display
+    ## Tag identifier with URL-safe slug and display label.
+    slug*: string   ## Lowercase hyphenated form for URLs
+    label*: string  ## Title case for display
 
   SourceFile* = object
-    path*: string
-    slug*: string  # Filename without extension (for URLs)
-    title*: string  # Display title extracted from content <h1>
-    createdAt*: Time
-    createdAtHasTime*: bool  # Whether original date included time
-    modifiedAt*: Time
-    content*: string  # Rendered HTML content
-    tags*: seq[TagInfo]  # Tags this post belongs to
+    ## Parsed markdown file with extracted metadata.
+    path*: string             ## Absolute filesystem path
+    slug*: string             ## Filename without extension, used for URLs
+    title*: string            ## First H1 heading from content
+    createdAt*: Time          ## Post date from first line or file mtime
+    createdAtHasTime*: bool   ## True if source included HH:MM
+    modifiedAt*: Time         ## File modification time
+    content*: string          ## Rendered HTML content
+    tags*: seq[TagInfo]       ## Tags this post belongs to
 
-  # Template interface types
   MenuItem* = object
-    url*, label*: string
-    active*: bool
-    children*: seq[MenuItem]  # nested submenu items
+    ## Navigation entry for menus.
+    url*: string              ## Link target, empty for text-only items
+    label*: string            ## Display text
+    active*: bool             ## True if this is the current page
+    children*: seq[MenuItem]  ## Nested submenu items
 
   PostPreview* = object
-    slug*, preview*, url*: string
-    date*: Time
-    dateHasTime*: bool  # Whether original date included time
-    tags*: seq[TagInfo]  # Tags for linking
+    ## Truncated post content for list pages.
+    slug*: string             ## Post identifier
+    preview*: string          ## HTML up to read-more marker
+    url*: string              ## Link to full post
+    date*: Time               ## Post date
+    dateHasTime*: bool        ## True if source included time
+    tags*: seq[TagInfo]       ## Associated tags
 
   PageLink* = object
-    page*: int
-    url*: string
-    current*: bool
-    ellipsis*: bool  # True if this is a "..." placeholder
+    ## Pagination link for list navigation.
+    page*: int      ## Page number (1-indexed)
+    url*: string    ## Link to page
+    current*: bool  ## True if this is the active page
+    ellipsis*: bool ## True for "..." gap placeholder
 
 proc toTagSlug*(s: string): string =
-  ## Normalize string to lowercase-hyphenated form for URLs
-  ## "How-To" -> "how-to", "how_TO" -> "how-to", "hOw tO" -> "how-to"
+  ## Normalize to lowercase-hyphenated: "How To" -> "how-to".
   for c in s.toLower:
     if c in {'_', ' '}:
       if result.len > 0 and result[^1] != '-':
@@ -56,8 +65,7 @@ proc toTagSlug*(s: string): string =
     result.setLen(result.len - 1)
 
 proc toTitleCase*(slug: string): string =
-  ## Convert slug to title case for display
-  ## "how-to" -> "How To"
+  ## Convert slug to title case: "how-to" -> "How To".
   var capitalize = true
   for c in slug:
     if c == '-':
@@ -71,7 +79,7 @@ proc toTitleCase*(slug: string): string =
         result.add(c)
 
 proc loadSiteConfig*(): SiteConfig =
-  ## Load site configuration from environment variables
+  ## Load BLG_BASE_URL, BLG_SITE_TITLE, BLG_SITE_DESCRIPTION from env.
   result.baseUrl = getEnv("BLG_BASE_URL", "").strip(chars = {'/'})
   result.siteTitle = getEnv("BLG_SITE_TITLE", "")
   result.siteDescription = getEnv("BLG_SITE_DESCRIPTION", "")

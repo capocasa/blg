@@ -1,12 +1,9 @@
 ## Date formatting with presets and custom format support
-##
-## Environment: BLG_DATE_FORMAT
-## Presets: iso, us-long, us-short, eu-long, eu-medium, eu-short, uk
-## Or use a custom format string (Nim times module syntax)
+## Set BLG_DATE_FORMAT to a preset name or custom Nim times format string.
 
 import std/[times, strutils, envvars, tables]
 
-const DatePresets* = {
+const DatePresets* = {  ## Named format presets for common date styles.
   "iso": "yyyy-MM-dd",             # 2000-01-01
   "us-long": "MMMM d'ord', yyyy",  # January 1st, 2000
   "us-short": "M/d/yyyy",          # 1/1/2000
@@ -17,7 +14,7 @@ const DatePresets* = {
 }.toTable
 
 proc ordinalSuffix(day: int): string =
-  ## Return ordinal suffix for a day number (1st, 2nd, 3rd, 4th, etc.)
+  ## Return "st", "nd", "rd", or "th" for a day number.
   if day in 11..13:
     return "th"
   case day mod 10
@@ -26,10 +23,10 @@ proc ordinalSuffix(day: int): string =
   of 3: "rd"
   else: "th"
 
-var dateFormat*: string
+var dateFormat*: string  ## Active format string, set by initDateFormat
 
 proc initDateFormat*() =
-  ## Initialize date format from environment (call after loading .env)
+  ## Load BLG_DATE_FORMAT from env, default to "eu-long".
   let fmt = getEnv("BLG_DATE_FORMAT", "eu-long")
   if fmt in DatePresets:
     dateFormat = DatePresets[fmt]
@@ -37,7 +34,7 @@ proc initDateFormat*() =
     dateFormat = fmt
 
 proc formatTime*(t: Time): string =
-  ## Format a Time value according to the configured date format
+  ## Format Time using dateFormat, replacing 'ord' with ordinal suffix.
   let dt = t.local
   result = dt.format(dateFormat)
   # Handle ordinal day suffix: 'ord' in format becomes literal "ord" in output

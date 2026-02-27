@@ -1,0 +1,8 @@
+nimTitle	blg	blg.html	module blg		0
+nim	buildSite	blg.html#buildSite,string,string,string,int	proc buildSite(contentDir, outputDir, cacheDir: string; perPage: int; force = false)		253
+heading	Contributing	blg.html#contributing	 Contributing		0
+heading	Architecture	blg.html#contributing-architecture	  Architecture		0
+heading	Pipeline	blg.html#contributing-pipeline	  Pipeline		0
+heading	Modules	blg.html#contributing-modules	  Modules		0
+heading	Template System	blg.html#contributing-template-system	  Template System		0
+heading	Dependencies	blg.html#contributing-dependencies	  Dependencies		0

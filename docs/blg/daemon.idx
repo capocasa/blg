@@ -1,0 +1,2 @@
+nimTitle	daemon	blg/daemon.html	module blg/daemon		0
+nim	watchAndRebuild	blg/daemon.html#watchAndRebuild,string,proc)	proc watchAndRebuild(inputDir: string; rebuild: proc ())		28

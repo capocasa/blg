@@ -1,28 +1,34 @@
 ## Dynamic template loading with fallback to built-in defaults
+## Loads template.so from cache dir if present; nil procs use builtins.
 
 import std/[dynlib, os, times]
 import types
 
 type
-  # Main template procs
   RenderPostProc* = proc(title, content: string, date, modified: Time, menus: seq[seq[MenuItem]], tags: seq[TagInfo]): string {.nimcall.}
+    ## Renders a blog post with date and tags.
   RenderPageProc* = proc(title, content: string, date, modified: Time, menus: seq[seq[MenuItem]]): string {.nimcall.}
+    ## Renders a static page without date/tags.
   RenderListProc* = proc(title: string, posts: seq[PostPreview], menus: seq[seq[MenuItem]], page, totalPages: int): string {.nimcall.}
+    ## Renders paginated post list (index or tag page).
 
-  # Helper procs - can be overridden individually
   RenderMenuItemProc* = proc(item: MenuItem): string {.nimcall.}
+    ## Renders a single nav menu item with children.
   RenderHeadProc* = proc(fullTitle: string, config: SiteConfig): string {.nimcall.}
+    ## Renders HTML <head> with meta tags and title.
   RenderTopNavProc* = proc(topMenu: seq[MenuItem]): string {.nimcall.}
+    ## Renders top navigation bar.
   RenderSiteHeaderProc* = proc(config: SiteConfig): string {.nimcall.}
+    ## Renders site title and tagline header.
   RenderFooterProc* = proc(bottomMenu: seq[MenuItem], hasMultipleMenus: bool): string {.nimcall.}
+    ## Renders footer with optional secondary nav.
 
   TemplateLib* = object
-    lib: LibHandle
-    # Main templates
+    ## Container for loaded template function pointers.
+    lib: LibHandle              ## Handle to loaded shared library
     renderPost*: RenderPostProc
     renderPage*: RenderPageProc
     renderList*: RenderListProc
-    # Helpers
     renderMenuItem*: RenderMenuItemProc
     renderHead*: RenderHeadProc
     renderTopNav*: RenderTopNavProc
@@ -30,7 +36,7 @@ type
     renderFooter*: RenderFooterProc
 
 proc loadTemplateLib*(path: string): TemplateLib =
-  ## Load template.so if it exists, returning nil procs for fallback
+  ## Load shared library from path; nil procs on missing/failed load.
   if not fileExists(path):
     return  # All procs are nil, caller uses defaults
 
@@ -76,6 +82,7 @@ proc loadTemplateLib*(path: string): TemplateLib =
     result.renderFooter = cast[RenderFooterProc](footerSym)
 
 proc unloadTemplateLib*(tl: var TemplateLib) =
+  ## Unload shared library and reset all proc pointers to nil.
   if tl.lib != nil:
     unloadLib(tl.lib)
     tl.lib = nil
@@ -91,4 +98,5 @@ proc unloadTemplateLib*(tl: var TemplateLib) =
     tl.renderFooter = nil
 
 proc isLoaded*(tl: TemplateLib): bool =
+  ## True if a custom template library was successfully loaded.
   tl.lib != nil

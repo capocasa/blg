@@ -1,0 +1,4 @@
+nimTitle	md	blg/md.html	module blg/md		0
+nim	extractMarkdownTitle	blg/md.html#extractMarkdownTitle,string	proc extractMarkdownTitle(text: string): string		7
+nim	insertReadMoreMarker	blg/md.html#insertReadMoreMarker,string	proc insertReadMoreMarker(text: string): string		15
+nim	markdown	blg/md.html#markdown,string	proc markdown(text: string): string		44

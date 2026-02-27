@@ -1,10 +1,11 @@
 ## Markdown to HTML using margrave (pure Nim)
+## Handles title extraction, read-more markers, and rendering.
 
 import margrave
 import std/strutils
 
 proc extractMarkdownTitle*(text: string): string =
-  ## Extract the first # heading from markdown source
+  ## Return text of first H1 heading, or empty string if none.
   for line in text.splitLines:
     let trimmed = line.strip
     if trimmed.startsWith("# "):
@@ -12,8 +13,7 @@ proc extractMarkdownTitle*(text: string): string =
   return ""
 
 proc insertReadMoreMarker*(text: string): string =
-  ## Insert <!-- readmore --> at first 3+ consecutive newlines
-  ## Ensures at least one paragraph exists before the marker
+  ## Insert <read-more/> at first triple-newline break for post previews.
   var i = 0
   var foundParagraph = false
 
@@ -42,6 +42,6 @@ proc insertReadMoreMarker*(text: string): string =
   text
 
 proc markdown*(text: string): string =
-  ## Convert markdown to HTML using margrave
+  ## Convert markdown source to HTML via margrave parser.
   let elements = parseMargrave(text)
   result = elements.join("\n")

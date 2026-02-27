@@ -1,12 +1,32 @@
 ## Markdown rendering with caching and template application
+## Handles date extraction, HTML caching, link processing, and page generation.
+##
+## Templates
+## ---------
+##
+## HTML output is generated via `.nimf` source filters (Nim's compile-time templating).
+## These are included at compile time and become native code.
+##
+## **helpers.nimf** - Overridable helper procs:
+## - `builtinRenderMenuItem` - Single nav item with nested children
+## - `builtinRenderHead` - HTML <head> with meta tags, title, CSS link
+## - `builtinRenderTopNav` - Top navigation bar
+## - `builtinRenderSiteHeader` - Site title and tagline
+## - `builtinRenderFooter` - Footer with optional secondary nav
+##
+## **page.nimf** - `pageTemplate` for static pages (no date/tags)
+##
+## **post.nimf** - `postTemplate` for blog posts (with date and tags)
+##
+## **list.nimf** - `listTemplate` for paginated post listings (index, tag pages)
 
 import std/[os, times, strutils, options]
 import md, types, datetime, dynload
 
-var helperLib*: TemplateLib  # Set by caller to enable helper overrides
+var helperLib*: TemplateLib  ## Set by blg.nim to enable template overrides
 
 proc isIsoDate*(line: string): bool =
-  ## Check if line matches YYYY-MM-DD format (optionally followed by HH:MM or HH:MM:SS)
+  ## True if line starts with YYYY-MM-DD, optionally with HH:MM[:SS].
   let s = line.strip
   if s.len < 10: return false
   # Check format: 4 digits, hyphen, 2 digits, hyphen, 2 digits
@@ -43,8 +63,7 @@ proc isIsoDate*(line: string): bool =
   false
 
 proc extractIsoDate*(content: string): Option[(Time, bool)] =
-  ## Extract ISO date (and optional time) from first line of content if present
-  ## Returns (Time, hasTime) tuple where hasTime indicates if time was in the source
+  ## Parse date from first line; returns (Time, hasTime) or none.
   var i = 0
   while i < content.len and content[i] in Whitespace:
     inc i
@@ -73,7 +92,7 @@ proc extractIsoDate*(content: string): Option[(Time, bool)] =
     result = none((Time, bool))
 
 proc stripDateLine*(content: string): string =
-  ## Remove leading ISO date line from content (for rendering)
+  ## Remove leading ISO date line before markdown rendering.
   # Skip leading whitespace
   var i = 0
   while i < content.len and content[i] in Whitespace:
@@ -96,6 +115,7 @@ proc stripDateLine*(content: string): string =
   content[i..^1]
 
 proc formatDate*(t: Time, hasTime = false): string =
+  ## Format date, appending time if hasTime is true.
   result = formatTime(t)
   if hasTime:
     let dt = t.local
@@ -106,8 +126,7 @@ proc formatDate*(t: Time, hasTime = false): string =
       result &= " " & dt.format("HH:mm")
 
 proc generatePageLinks*(listSlug: string, current, total: int, urlSuffix = ".html"): seq[PageLink] =
-  ## Generate page links with smart truncation
-  ## Shows: first, ellipsis, window around current, ellipsis, last
+  ## Generate pagination with ellipsis for large page counts.
   if total <= 1:
     return @[]
 
@@ -187,9 +206,7 @@ include "templates/post.nimf"
 include "templates/list.nimf"
 
 proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[content: string, changed: bool] =
-  ## Render markdown to HTML, using cache if source is unmodified
-  ## Returns content and whether it was re-rendered
-  ## If force=true, always re-render regardless of cache
+  ## Render markdown to HTML with caching; returns (html, wasRerendered).
   let cachePath = cacheDir / path.splitFile.name & ".html"
   let srcMtime = getFileInfo(path).lastWriteTime
 
@@ -205,7 +222,7 @@ proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[conte
   (rendered, true)
 
 proc linkFirstH1*(content: string, url: string): string =
-  ## Wrap the content of the first <h1> in a link to url
+  ## Wrap first <h1> content in a link for clickable post titles.
   let h1Start = content.find("<h1>")
   if h1Start < 0:
     return content
@@ -217,7 +234,7 @@ proc linkFirstH1*(content: string, url: string): string =
   result = content[0..<tagEnd] & "<a href=\"" & url & "\">" & inner & "</a>" & content[h1End..^1]
 
 proc extractPreview*(content: string): string =
-  ## Extract content up to the read-more marker, falling back to first paragraph
+  ## Return content up to <read-more/> or first </p>.
   let marker = "<read-more/>"
   let markerPos = content.find(marker)
   if markerPos >= 0:
@@ -231,7 +248,7 @@ proc extractPreview*(content: string): string =
       result = content
 
 proc isExternalUrl(url: string, baseUrl: string): bool =
-  ## Check if URL is external (not relative, not starting with baseUrl)
+  ## True if URL points to a different domain.
   if url.len == 0 or url[0] == '#':
     return false  # anchor link
   if url[0] == '/':
@@ -243,9 +260,7 @@ proc isExternalUrl(url: string, baseUrl: string): bool =
   return true
 
 proc processLinks*(html: string, config: SiteConfig): string =
-  ## Post-process HTML to:
-  ## 1. Convert root-relative URLs to absolute when baseUrl is set
-  ## 2. Mark external links with class="external", target="_blank", rel="noopener noreferrer"
+  ## Rewrite relative URLs to absolute; mark external links with target="_blank".
   result = html
 
   if config.baseUrl.len == 0:
@@ -388,12 +403,15 @@ proc processLinks*(html: string, config: SiteConfig): string =
       i = urlEnd + 1
 
 proc renderPage*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig): string =
+  ## Render a static page (no date/tags shown).
   pageTemplate(src.title, src.content, src.createdAt, src.modifiedAt, menus, config).processLinks(config)
 
 proc renderPost*(src: SourceFile, menus: seq[seq[MenuItem]], config: SiteConfig): string =
+  ## Render a blog post with date and tags.
   postTemplate(src.title, src.content, src.createdAt, src.modifiedAt, src.createdAtHasTime, menus, src.tags, config).processLinks(config)
 
 proc renderList*(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuItem]], page, totalPages: int, urlSuffix = ".html", config: SiteConfig): string =
+  ## Render paginated post list for index or tag pages.
   var previews: seq[PostPreview]
   for post in posts:
     let url = post.slug & urlSuffix

@@ -1,0 +1,10 @@
+nimTitle	types	blg/types.html	module blg/types		0
+nim	SiteConfig	blg/types.html#SiteConfig	object SiteConfig		7
+nim	TagInfo	blg/types.html#TagInfo	object TagInfo		13
+nim	SourceFile	blg/types.html#SourceFile	object SourceFile		18
+nim	MenuItem	blg/types.html#MenuItem	object MenuItem		29
+nim	PostPreview	blg/types.html#PostPreview	object PostPreview		36
+nim	PageLink	blg/types.html#PageLink	object PageLink		45
+nim	toTagSlug	blg/types.html#toTagSlug,string	proc toTagSlug(s: string): string		52
+nim	toTitleCase	blg/types.html#toTitleCase,string	proc toTitleCase(slug: string): string		67
+nim	loadSiteConfig	blg/types.html#loadSiteConfig	proc loadSiteConfig(): SiteConfig		81

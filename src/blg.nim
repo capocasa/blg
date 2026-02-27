@@ -1,7 +1,60 @@
 ## blg - Blog Generator
+## Static site generator using markdown files and symlinks for tags.
 ##
-## One-shot blog generator from markdown files.
-## Tags are implemented as subdirectories with symlinks.
+## Contributing
+## ============
+##
+## This project uses *tight vibecoding*: AI-generated code evolved granularly
+## through human testing and interaction. Requirements emerged iteratively.
+##
+## Architecture
+## ------------
+##
+## blg favors filesystem primitives over configuration:
+##
+## - **Symlinks as tags** - No database, no YAML frontmatter, just `ln -s`
+## - **Directories as structure** - Tag subdirectories, menu.list for ordering
+## - **Environment for config** - `.env` files, env vars, CLI flags (in that precedence)
+##
+## Files are content, directories are organization.
+##
+## Pipeline
+## --------
+##
+## .. code-block::
+##
+##   md/*.md → [parse date] → [render markdown] → cache/*.html → [apply template] → public/*.html
+##          ↘ md/tag-name/*.md (symlinks) → tag pages
+##
+## Incremental builds compare mtimes. Force rebuild with `-f`.
+##
+## Modules
+## -------
+##
+## - `blg <blg.html>`_ - CLI entry, site builder, menu logic
+## - `blg/types <blg/types.html>`_ - Core data types: SourceFile, MenuItem, TagInfo
+## - `blg/md <blg/md.html>`_ - Markdown parsing via margrave
+## - `blg/renderer <blg/renderer.html>`_ - HTML generation, caching, link processing
+## - `blg/datetime <blg/datetime.html>`_ - Date formatting with presets
+## - `blg/dynload <blg/dynload.html>`_ - Runtime template override loading
+## - `blg/daemon <blg/daemon.html>`_ - inotify file watcher (Linux only)
+##
+## Template System
+## ---------------
+##
+## Templates use Nim source filters (`.nimf`). They compile to native code,
+## not runtime interpretation. Override by placing a `template.so` in the
+## cache directory, built from your custom `templates.nim`.
+##
+## Overridable helpers: `renderMenuItem`, `renderHead`, `renderTopNav`,
+## `renderSiteHeader`, `renderFooter`
+##
+## Dependencies
+## ------------
+##
+## - **margrave** - Pure Nim markdown parser
+## - **std/dynlib** - Template hot-loading
+## - **inotify** - Daemon mode (Linux)
 
 import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, options]
 import blg/[renderer, types, dynload, datetime, md]
@@ -9,28 +62,26 @@ when defined(linux):
   import blg/daemon
 
 const defaultThemeCss = staticRead("../assets/default-theme.css")
+  ## Embedded default CSS theme, written on first run.
 
-var templateLib: TemplateLib
-var ext: string = "html"  # file extension, set from BLG_EXT
-var siteConfig: SiteConfig
+var templateLib: TemplateLib   ## Loaded custom template library (if any)
+var ext: string = "html"       ## Output file extension from BLG_EXT
+var siteConfig: SiteConfig     ## Site-wide config from environment
 
 proc suffix(): string =
-  ## Returns ".ext" or "" if ext is empty
+  ## Return ".html" or "" for extensionless URLs.
   if ext.len > 0: "." & ext else: ""
 
 type
   MenuEntry = object
-    kind: string  # "tag", "page", or "text" (unlinked)
-    slug: string
-    label: string
-    indent: int   # indentation level (0 = top, 1 = child, 2 = grandchild)
+    ## Parsed menu.list entry before conversion to MenuItem.
+    kind: string   ## "tag", "page", or "text" (unlinked)
+    slug: string   ## URL slug
+    label: string  ## Display text
+    indent: int    ## Nesting level (0 = top)
 
 proc loadMenuList(path: string, tags: seq[string], pageSlugs: HashSet[string]): seq[seq[MenuEntry]] =
-  ## Load menu.list file with support for:
-  ## - Multiple menus separated by blank lines
-  ## - Nested items via indentation (1 space = child of previous)
-  ## - Plain text items (neither tag nor page)
-  ## Returns seq of menus, each containing entries with indent levels
+  ## Parse menu.list into menus; blank lines separate menus, indentation creates hierarchy.
   var tagSlugs: Table[string, string]  # normalized slug -> original tag name
   for tag in tags:
     tagSlugs[toTagSlug(tag)] = tag
@@ -85,7 +136,7 @@ proc loadMenuList(path: string, tags: seq[string], pageSlugs: HashSet[string]): 
     result.add(currentMenu)
 
 proc buildMenuItems(entries: seq[MenuEntry], activeItem: string, startIdx: var int, parentIndent: int): seq[MenuItem] =
-  ## Recursively build MenuItem tree from flat entries with indentation
+  ## Convert flat MenuEntry list to nested MenuItem tree.
   let normalizedActive = toTagSlug(activeItem)
   while startIdx < entries.len:
     let entry = entries[startIdx]
@@ -111,25 +162,27 @@ proc buildMenuItems(entries: seq[MenuEntry], activeItem: string, startIdx: var i
     result.add(item)
 
 proc buildMenus(menuEntries: seq[seq[MenuEntry]], activeItem: string): seq[seq[MenuItem]] =
-  ## Convert all menus from entries to MenuItem objects with active state
+  ## Build all menus with active state set for current page.
   for entries in menuEntries:
     var idx = 0
     result.add(buildMenuItems(entries, activeItem, idx, -1))
 
-# Template rendering with dynload fallback
 proc doRenderPage(src: SourceFile, menus: seq[seq[MenuItem]]): string =
+  ## Render page using custom template if loaded, else builtin.
   if templateLib.renderPage != nil:
     templateLib.renderPage(src.title, src.content, src.createdAt, src.modifiedAt, menus).processLinks(siteConfig)
   else:
     renderPage(src, menus, siteConfig)
 
 proc doRenderPost(src: SourceFile, menus: seq[seq[MenuItem]]): string =
+  ## Render post using custom template if loaded, else builtin.
   if templateLib.renderPost != nil:
     templateLib.renderPost(src.title, src.content, src.createdAt, src.modifiedAt, menus, src.tags).processLinks(siteConfig)
   else:
     renderPost(src, menus, siteConfig)
 
 proc doRenderList(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuItem]], page, totalPages: int): string =
+  ## Render list page using custom template if loaded, else builtin.
   if templateLib.renderList != nil:
     var previews: seq[PostPreview]
     for post in posts:
@@ -146,7 +199,7 @@ proc doRenderList(listTitle: string, posts: seq[SourceFile], menus: seq[seq[Menu
     renderList(listTitle, posts, menus, page, totalPages, suffix(), siteConfig)
 
 proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
-  ## Find all .md files in content directory and gather metadata
+  ## Scan for .md files, extract metadata, sort by date descending.
   for path in walkFiles(contentDir / "*.md"):
     let info = getFileInfo(path)
     let content = readFile(path)
@@ -165,8 +218,7 @@ proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
   result.sort(proc(a, b: SourceFile): int = cmp(b.createdAt, a.createdAt))
 
 proc discoverTags(contentDir: string): Table[string, seq[string]] =
-  ## Discover tags from subdirectories containing symlinks
-  ## Directories directly within contentDir represent tags
+  ## Map tag directories to their symlinked post slugs.
   for kind, tagPath in walkDir(contentDir):
     if kind == pcDir:
       let tagName = tagPath.splitPath.tail
@@ -178,13 +230,13 @@ proc discoverTags(contentDir: string): Table[string, seq[string]] =
         result[tagName] = tagged
 
 proc needsRegen(outPath: string, srcMtime: Time): bool =
-  ## Check if output needs regeneration based on source mtime
+  ## True if output missing or older than source.
   if not fileExists(outPath):
     return true
   getFileInfo(outPath).lastWriteTime < srcMtime
 
 proc paginate(items: seq[SourceFile], perPage: int): seq[seq[SourceFile]] =
-  ## Split items into pages
+  ## Split posts into pages of perPage items.
   if items.len == 0:
     result.add(@[])
     return
@@ -194,13 +246,12 @@ proc paginate(items: seq[SourceFile], perPage: int): seq[seq[SourceFile]] =
     i += perPage
 
 proc listPagePath(outputDir, name: string, page: int): string =
-  ## Generate path for a list page: name.html, name-2.html, etc.
+  ## Return output path: name.html, name-2.html, etc.
   if page == 1: outputDir / name & suffix()
   else: outputDir / name & "-" & $page & suffix()
 
 proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = false) =
-  ## Build the entire site, only regenerating what changed
-  ## If force=true, regenerate everything ignoring cache
+  ## Main build: discover files, render changed content, write HTML.
 
   # Try to load custom templates
   let templatePath = cacheDir / DynlibFormat % "template"
@@ -304,7 +355,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   echo "Built: ", pagesBuilt, " pages, ", postsBuilt, " posts, ", listsBuilt, " lists (", changed.len, " sources changed)"
 
 proc initPublicDir(outputDir: string) =
-  ## Initialize public directory with default theme if it doesn't exist
+  ## Create output dir and write default style.css if missing.
   createDir(outputDir)
   let stylePath = outputDir / "style.css"
   if not fileExists(stylePath):
@@ -312,7 +363,7 @@ proc initPublicDir(outputDir: string) =
     echo "Created default theme: ", stylePath
 
 proc validateInputDir(inputDir: string) =
-  ## Ensure input directory exists and has at least one markdown file
+  ## Exit with error if input dir missing or has no .md files.
   if not dirExists(inputDir):
     echo "Error: input directory '", inputDir, "' does not exist"
     quit(1)
@@ -325,7 +376,7 @@ proc validateInputDir(inputDir: string) =
     quit(1)
 
 proc validateDirAccess(dir, name: string) =
-  ## Check directory is readable/writable, create if needed
+  ## Verify directory is readable and writable.
   if dirExists(dir):
     # Check readable
     try:
@@ -344,7 +395,7 @@ proc validateDirAccess(dir, name: string) =
       quit(1)
 
 proc loadEnvFile(path: string) =
-  ## Load .env file into environment variables
+  ## Parse .env file, set vars that aren't already in environment.
   if not fileExists(path):
     return
   for line in lines(path):
@@ -359,6 +410,7 @@ proc loadEnvFile(path: string) =
         putEnv(key, val)
 
 proc usage() =
+  ## Print help and exit.
   echo """blg - Blog Generator
 
 Usage: blg [options]

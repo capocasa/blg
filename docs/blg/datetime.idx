@@ -1,0 +1,5 @@
+nimTitle	datetime	blg/datetime.html	module blg/datetime		0
+nim	DatePresets	blg/datetime.html#DatePresets	const DatePresets		6
+nim	dateFormat	blg/datetime.html#dateFormat	var dateFormat		26
+nim	initDateFormat	blg/datetime.html#initDateFormat	proc initDateFormat()		28
+nim	formatTime	blg/datetime.html#formatTime,Time	proc formatTime(t: Time): string		36

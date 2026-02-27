@@ -1,0 +1,13 @@
+nimTitle	dynload	blg/dynload.html	module blg/dynload		0
+nim	RenderPostProc	blg/dynload.html#RenderPostProc	type RenderPostProc		8
+nim	RenderPageProc	blg/dynload.html#RenderPageProc	type RenderPageProc		10
+nim	RenderListProc	blg/dynload.html#RenderListProc	type RenderListProc		12
+nim	RenderMenuItemProc	blg/dynload.html#RenderMenuItemProc	type RenderMenuItemProc		15
+nim	RenderHeadProc	blg/dynload.html#RenderHeadProc	type RenderHeadProc		17
+nim	RenderTopNavProc	blg/dynload.html#RenderTopNavProc	type RenderTopNavProc		19
+nim	RenderSiteHeaderProc	blg/dynload.html#RenderSiteHeaderProc	type RenderSiteHeaderProc		21
+nim	RenderFooterProc	blg/dynload.html#RenderFooterProc	type RenderFooterProc		23
+nim	TemplateLib	blg/dynload.html#TemplateLib	object TemplateLib		26
+nim	loadTemplateLib	blg/dynload.html#loadTemplateLib,string	proc loadTemplateLib(path: string): TemplateLib		38
+nim	unloadTemplateLib	blg/dynload.html#unloadTemplateLib,TemplateLib	proc unloadTemplateLib(tl: var TemplateLib)		84
+nim	isLoaded	blg/dynload.html#isLoaded,TemplateLib	proc isLoaded(tl: TemplateLib): bool		100

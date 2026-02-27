@@ -1,28 +1,32 @@
 ## Daemon mode with inotify file watching and debounce
+## Linux-only; watches input directory and rebuilds after 5s of quiet.
 
 import std/[os, posix, times]
 
 const
-  IN_MODIFY = 0x00000002'u32
-  IN_CREATE = 0x00000100'u32
-  IN_DELETE = 0x00000200'u32
-  IN_CLOSE_WRITE = 0x00000008'u32
-  IN_MOVED_TO = 0x00000080'u32
-  IN_MOVED_FROM = 0x00000040'u32
-  DEBOUNCE_SECS = 5
+  IN_MODIFY = 0x00000002'u32     ## File modified
+  IN_CREATE = 0x00000100'u32     ## File created
+  IN_DELETE = 0x00000200'u32     ## File deleted
+  IN_CLOSE_WRITE = 0x00000008'u32  ## File closed after write
+  IN_MOVED_TO = 0x00000080'u32   ## File moved into directory
+  IN_MOVED_FROM = 0x00000040'u32 ## File moved out of directory
+  DEBOUNCE_SECS = 5              ## Seconds to wait after last change
 
 type
   InotifyEvent {.importc: "struct inotify_event", header: "<sys/inotify.h>".} = object
+    ## Kernel inotify event structure.
     wd: cint
     mask: uint32
     cookie: uint32
     len: uint32
 
 proc inotify_init(): cint {.importc, header: "<sys/inotify.h>".}
+  ## Initialize inotify instance, returns file descriptor.
 proc inotify_add_watch(fd: cint, path: cstring, mask: uint32): cint {.importc, header: "<sys/inotify.h>".}
+  ## Add watch on path for events matching mask.
 
 proc watchAndRebuild*(inputDir: string, rebuild: proc()) =
-  ## Watch input directory and trigger rebuild after 5s of no changes
+  ## Watch input dir for changes, call rebuild after debounce period.
   let fd = inotify_init()
   if fd < 0:
     echo "Error: failed to initialize inotify"

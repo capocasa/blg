@@ -1,0 +1,18 @@
+nimTitle	renderer	blg/renderer.html	module blg/renderer		0
+nim	helperLib	blg/renderer.html#helperLib	var helperLib		26
+nim	isIsoDate	blg/renderer.html#isIsoDate,string	proc isIsoDate(line: string): bool		28
+nim	extractIsoDate	blg/renderer.html#extractIsoDate,string	proc extractIsoDate(content: string): Option[(Time, bool)]		65
+nim	stripDateLine	blg/renderer.html#stripDateLine,string	proc stripDateLine(content: string): string		94
+nim	formatDate	blg/renderer.html#formatDate,Time	proc formatDate(t: Time; hasTime = false): string		117
+nim	generatePageLinks	blg/renderer.html#generatePageLinks,string,int,int,string	proc generatePageLinks(listSlug: string; current, total: int; urlSuffix = ".html"): seq[\n    PageLink]		128
+nim	pageTemplate	blg/renderer.html#pageTemplate,string,string,Time,Time,seq[seq[MenuItem]],SiteConfig	proc pageTemplate(title, content: string; date, modified: Time;\n             menus: seq[seq[MenuItem]]; config: SiteConfig): string		3
+nim	postTemplate	blg/renderer.html#postTemplate,string,string,Time,Time,bool,seq[seq[MenuItem]],seq[TagInfo],SiteConfig	proc postTemplate(title, content: string; date, modified: Time; dateHasTime: bool;\n             menus: seq[seq[MenuItem]]; tags: seq[TagInfo]; config: SiteConfig): string		3
+nim	listTemplate	blg/renderer.html#listTemplate,string,seq[PostPreview],seq[seq[MenuItem]],int,int,string,SiteConfig	proc listTemplate(title: string; posts: seq[PostPreview]; menus: seq[seq[MenuItem]];\n             page, totalPages: int; urlSuffix = ".html"; config: SiteConfig): string		3
+nim	renderMarkdown	blg/renderer.html#renderMarkdown,string,string	proc renderMarkdown(path: string; cacheDir: string; force = false): tuple[\n    content: string, changed: bool]		208
+nim	linkFirstH1	blg/renderer.html#linkFirstH1,string,string	proc linkFirstH1(content: string; url: string): string		224
+nim	extractPreview	blg/renderer.html#extractPreview,string	proc extractPreview(content: string): string		236
+nim	processLinks	blg/renderer.html#processLinks,string,SiteConfig	proc processLinks(html: string; config: SiteConfig): string		262
+nim	renderPage	blg/renderer.html#renderPage,SourceFile,seq[seq[MenuItem]],SiteConfig	proc renderPage(src: SourceFile; menus: seq[seq[MenuItem]]; config: SiteConfig): string		405
+nim	renderPost	blg/renderer.html#renderPost,SourceFile,seq[seq[MenuItem]],SiteConfig	proc renderPost(src: SourceFile; menus: seq[seq[MenuItem]]; config: SiteConfig): string		409
+nim	renderList	blg/renderer.html#renderList,string,seq[SourceFile],seq[seq[MenuItem]],int,int,string,SiteConfig	proc renderList(listTitle: string; posts: seq[SourceFile]; menus: seq[seq[MenuItem]];\n           page, totalPages: int; urlSuffix = ".html"; config: SiteConfig): string		413
+heading	Templates	blg/renderer.html#templates	 Templates		0
