@@ -1,7 +1,7 @@
 # Package
 version       = "0.1.0"
-author        = "blg"
-description   = "A blog generator with inotify watching"
+author        = "Carlo Capocasa"
+description   = "Static blog generator using markdown and symlinks"
 license       = "MIT"
 srcDir        = "src"
 bin           = @["blg"]
