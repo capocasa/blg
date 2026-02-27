@@ -100,7 +100,9 @@ proc buildMenuItems(entries: seq[MenuEntry], activeItem: string, startIdx: var i
 
     inc startIdx
     var item = MenuItem(
-      url: if entry.kind == "text": "" else: entry.slug & suffix(),
+      url: if entry.kind == "text": ""
+           elif entry.slug == "index": "."
+           else: entry.slug & suffix(),
       label: entry.label,
       active: entry.kind != "text" and normalizedActive == entry.slug
     )

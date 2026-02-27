@@ -320,6 +320,18 @@ proc processLinks*(html: string, config: SiteConfig): string =
 
       let url = result[urlStart..<urlEnd]
 
+      # Handle "." (current directory) specially for index/home links
+      if url == ".":
+        if config.baseUrl.len > 0:
+          # With baseUrl, convert "." to "baseUrl/"
+          let absoluteUrl = config.baseUrl & "/"
+          result = result[0..<urlStart] & absoluteUrl & result[urlEnd..^1]
+          i = urlStart + absoluteUrl.len + 1
+        else:
+          # Without baseUrl, leave "." as-is
+          i = urlEnd + 1
+        continue
+
       # Convert relative URLs to absolute (both /path and path.html forms)
       if url.len > 0 and url[0] notin {'#', '/'} and
          not url.startsWith("http://") and not url.startsWith("https://") and

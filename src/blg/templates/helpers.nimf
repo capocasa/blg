@@ -41,7 +41,7 @@ ${builtinRenderMenuItem(item)}
 #proc builtinRenderSiteHeader(config: SiteConfig): string =
 #  if config.siteTitle.len > 0:
   <header class="site-header">
-    <site-title><a href="${config.baseUrl}/">${config.siteTitle}</a></site-title>
+    <site-title><a href=".">${config.siteTitle}</a></site-title>
 #    if config.siteDescription.len > 0:
     <tag-line>${config.siteDescription}</tag-line>
 #    end if
