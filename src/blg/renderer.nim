@@ -150,6 +150,34 @@ proc generatePageLinks*(listSlug: string, current, total: int, urlSuffix = ".htm
     else:
       result.add(PageLink(page: p, url: pageUrl(p), current: p == current))
 
+proc extractFirstImage*(html: string): string =
+  ## Return src of first <img> tag in HTML, or empty string.
+  let imgStart = html.find("<img ")
+  if imgStart < 0:
+    return ""
+  let srcStart = html.find("src=\"", imgStart)
+  if srcStart < 0:
+    return ""
+  let urlStart = srcStart + 5
+  let urlEnd = html.find("\"", urlStart)
+  if urlEnd < 0:
+    return ""
+  html[urlStart..<urlEnd]
+
+proc resolveOgImage*(content: string, config: SiteConfig): string =
+  ## Best OG image: first image in content, else site-wide og-image, else empty.
+  ## Returns absolute URL or empty string.
+  if config.baseUrl.len == 0:
+    return ""
+  let firstImg = extractFirstImage(content)
+  if firstImg.len > 0:
+    if firstImg.startsWith("http://") or firstImg.startsWith("https://"):
+      return firstImg
+    return config.baseUrl & "/" & firstImg
+  if config.ogImage.len > 0:
+    return config.baseUrl & "/" & config.ogImage
+  ""
+
 include "templates/helpers.nimf"
 
 # Dispatch procs - check dynlib override, fallback to builtin
@@ -182,6 +210,9 @@ proc renderFooter(bottomMenu: seq[MenuItem], hasMultipleMenus: bool): string =
     helperLib.renderFooter(bottomMenu, hasMultipleMenus)
   else:
     builtinRenderFooter(bottomMenu, hasMultipleMenus)
+
+proc renderOgTags(title, description, url, image: string): string =
+  builtinRenderOgTags(title, description, url, image)
 
 include "templates/page.nimf"
 include "templates/post.nimf"
@@ -406,3 +437,76 @@ proc renderList*(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuI
       tags: post.tags
     ))
   listTemplate(listTitle, previews, menus, page, totalPages, urlSuffix, config).processLinks(config)
+
+proc stripHtmlTags(html: string): string =
+  ## Remove HTML tags, leaving plain text.
+  var inTag = false
+  for c in html:
+    if c == '<':
+      inTag = true
+    elif c == '>':
+      inTag = false
+    elif not inTag:
+      result.add(c)
+
+proc toRfc822(t: Time): string =
+  ## Format time as RFC 822 for RSS pubDate.
+  t.utc.format("ddd, dd MMM yyyy HH:mm:ss") & " +0000"
+
+proc xmlEscape(s: string): string =
+  ## Escape special characters for XML content.
+  for c in s:
+    case c
+    of '&': result.add("&amp;")
+    of '<': result.add("&lt;")
+    of '>': result.add("&gt;")
+    of '"': result.add("&quot;")
+    else: result.add(c)
+
+proc generateRssFeed*(posts: seq[SourceFile], config: SiteConfig, urlSuffix: string): string =
+  ## Generate RSS 2.0 XML feed from posts. Requires baseUrl.
+  var items = ""
+  let count = min(posts.len, 20)
+  for i in 0..<count:
+    let post = posts[i]
+    let link = config.baseUrl & "/" & post.slug & urlSuffix
+    var preview = extractPreview(post.content)
+    # Strip H1 heading from preview (title is already in <title>)
+    let h1End = preview.find("</h1>")
+    if h1End >= 0:
+      preview = preview[h1End + 5..^1]
+    preview = preview.stripHtmlTags.strip.xmlEscape
+    items.add("    <item>\n")
+    items.add("      <title>" & post.title.xmlEscape & "</title>\n")
+    items.add("      <link>" & link & "</link>\n")
+    items.add("      <description>" & preview & "</description>\n")
+    items.add("      <pubDate>" & post.createdAt.toRfc822 & "</pubDate>\n")
+    items.add("      <guid>" & link & "</guid>\n")
+    items.add("    </item>\n")
+
+  result = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>""" & config.siteTitle.xmlEscape & """</title>
+    <link>""" & config.baseUrl & """</link>
+    <description>""" & config.siteDescription.xmlEscape & """</description>
+""" & items & """  </channel>
+</rss>
+"""
+
+proc generateSitemap*(sources: seq[SourceFile], tagSlugs: seq[string], config: SiteConfig, urlSuffix: string): string =
+  ## Generate XML sitemap. Requires baseUrl.
+  var urls = ""
+  for src in sources:
+    let loc = config.baseUrl & "/" & src.slug & urlSuffix
+    urls.add("  <url><loc>" & loc & "</loc></url>\n")
+  # Index page
+  urls.add("  <url><loc>" & config.baseUrl & "/index" & urlSuffix & "</loc></url>\n")
+  # Tag pages
+  for slug in tagSlugs:
+    urls.add("  <url><loc>" & config.baseUrl & "/" & slug & urlSuffix & "</loc></url>\n")
+
+  result = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+""" & urls & """</urlset>
+"""

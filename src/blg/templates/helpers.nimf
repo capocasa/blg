@@ -24,8 +24,34 @@ ${builtinRenderMenuItem(child)}
   <meta name="description" content="${config.siteDescription}">
 #  end if
   <title>${fullTitle}</title>
-  <link rel="stylesheet" href="style.css">
+#  if config.favicon.len > 0:
+  <link rel="icon" href="${config.favicon}">
+#  end if
+#  for css in config.cssFiles:
+  <link rel="stylesheet" href="${css}">
+#  end for
+#  for js in config.jsFiles:
+  <script src="${js}"></script>
+#  end for
+#  if config.appleTouchIcon.len > 0:
+  <link rel="apple-touch-icon" href="${config.appleTouchIcon}">
+#  end if
+#  if config.baseUrl.len > 0:
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="${config.baseUrl}/feed.xml">
+#  end if
 </head>
+#end proc
+#proc builtinRenderOgTags(title, description, url, image: string): string =
+  <meta property="og:title" content="${title}">
+#  if description.len > 0:
+  <meta property="og:description" content="${description}">
+#  end if
+#  if url.len > 0:
+  <meta property="og:url" content="${url}">
+#  end if
+#  if image.len > 0:
+  <meta property="og:image" content="${image}">
+#  end if
 #end proc
 #proc builtinRenderTopNav(topMenu: seq[MenuItem]): string =
 #  if topMenu.len > 0:

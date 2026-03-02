@@ -1,12 +1,15 @@
 #? stdtmpl | standard
-#import times
+#import times, strutils
 #proc pageTemplate*(title, content: string, date, modified: Time, menus: seq[seq[MenuItem]], config: SiteConfig): string =
 #  let topMenu = if menus.len > 0: menus[0] else: @[]
 #  let bottomMenu = if menus.len > 1: menus[^1] else: @[]
 #  let fullTitle = if config.siteTitle.len > 0: title & " - " & config.siteTitle else: title
+#  let ogUrl = if config.baseUrl.len > 0: config.baseUrl & "/" & title.toTagSlug & ".html" else: ""
+#  let ogImage = resolveOgImage(content, config)
+#  let head = renderHead(fullTitle, config).replace("</head>", renderOgTags(fullTitle, config.siteDescription, ogUrl, ogImage) & "</head>")
 <!DOCTYPE html>
 <html lang="en">
-${renderHead(fullTitle, config)}
+${head}
 <body>
 ${renderSiteHeader(config)}
 ${renderTopNav(topMenu)}

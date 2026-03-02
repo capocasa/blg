@@ -371,7 +371,37 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
         echo "  ", outPath
         listsBuilt += 1
 
+  # Generate RSS feed and sitemap (requires baseUrl)
+  if siteConfig.baseUrl.len > 0:
+    let feedPath = outputDir / "feed.xml"
+    writeFile(feedPath, generateRssFeed(posts, siteConfig, suffix()))
+    echo "  ", feedPath
+    let sitemapPath = outputDir / "sitemap.xml"
+    let tagSlugList = toSeq(tags.keys).mapIt(toTagSlug(it))
+    writeFile(sitemapPath, generateSitemap(sources, tagSlugList, siteConfig, suffix()))
+    echo "  ", sitemapPath
+
   echo "Built: ", pagesBuilt, " pages, ", postsBuilt, " posts, ", listsBuilt, " lists (", changed.len, " sources changed)"
+
+proc discoverAssets(outputDir: string, config: var SiteConfig) =
+  ## Scan output dir for favicon, CSS, and JS files to include in <head>.
+  config.cssFiles = @[]
+  config.jsFiles = @[]
+  config.favicon = ""
+  for path in walkFiles(outputDir / "favicon.*"):
+    config.favicon = path.extractFilename
+    break
+  for path in walkFiles(outputDir / "*.css"):
+    config.cssFiles.add(path.extractFilename)
+  config.cssFiles.sort()
+  for path in walkFiles(outputDir / "*.js"):
+    config.jsFiles.add(path.extractFilename)
+  config.jsFiles.sort()
+  for path in walkFiles(outputDir / "og-image.*"):
+    config.ogImage = path.extractFilename
+    break
+  if fileExists(outputDir / "apple-touch-icon.png"):
+    config.appleTouchIcon = "apple-touch-icon.png"
 
 proc initPublicDir(outputDir: string) =
   ## Create output dir and write default style.css if missing.
@@ -549,10 +579,14 @@ when isMainModule:
   validateDirAccess(cacheDir, "cache")
   validateDirAccess(outputDir, "output")
 
+  discoverAssets(outputDir, siteConfig)
+
   when defined(linux):
     if daemonMode:
       buildSite(inputDir, outputDir, cacheDir, perPage, forceMode)
-      watchAndRebuild(inputDir, proc() = buildSite(inputDir, outputDir, cacheDir, perPage))
+      watchAndRebuild(inputDir, proc() =
+        discoverAssets(outputDir, siteConfig)
+        buildSite(inputDir, outputDir, cacheDir, perPage))
     else:
       buildSite(inputDir, outputDir, cacheDir, perPage, forceMode)
   else:

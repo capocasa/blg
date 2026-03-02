@@ -9,6 +9,11 @@ type
     baseUrl*: string          ## Prepended to relative URLs for absolute links
     siteTitle*: string        ## Site name shown in header and <title>
     siteDescription*: string  ## Meta description for SEO
+    favicon*: string          ## Favicon filename discovered in public/
+    cssFiles*: seq[string]    ## CSS files discovered in public/
+    jsFiles*: seq[string]     ## JS files discovered in public/
+    ogImage*: string          ## OG image filename discovered in public/
+    appleTouchIcon*: string   ## Apple touch icon discovered in public/
 
   TagInfo* = object
     ## Tag identifier with URL-safe slug and display label.
