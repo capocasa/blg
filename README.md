@@ -270,6 +270,20 @@ By default, blg writes a default style sheet into public/style.css. This is only
 
 At the moment, blg only comes with one theme, but it's relatively straightforward to adapt existing HTML
 
+## Background images and videos
+
+Drop a file called `background.jpg` (or `.png`, `.webp`) into `public/` and every page gets a full background image. For video, use `background.mp4` or `.webm` — blg emits a `<video>` tag that autoplays muted and loops.
+
+You can override per page or per tag:
+
+    public/background.jpg             # site-wide fallback
+    public/background-about.jpg       # only the about page
+    public/background-cookie-recipes.mp4  # all posts tagged cookie-recipes
+
+The cascade is: page slug > tag > site-wide. Most specific wins. If both a video and image exist at the same level, the image is used as the video poster.
+
+For images, blg sets an inline `background` style on `<body>`. For video, it inserts a fixed `<video>` element. No extra CSS or JS needed.
+
 ## Templating
 
 Note: Advanced usage!
