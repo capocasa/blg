@@ -14,6 +14,8 @@ type
     jsFiles*: seq[string]     ## JS files discovered in public/
     ogImage*: string          ## OG image filename discovered in public/
     appleTouchIcon*: string   ## Apple touch icon discovered in public/
+    backgroundImage*: string  ## Site-wide background image (background.jpg/png/webp)
+    backgroundVideo*: string  ## Site-wide background video (background.mp4/webm)
 
   TagInfo* = object
     ## Tag identifier with URL-safe slug and display label.

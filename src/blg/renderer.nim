@@ -164,6 +164,59 @@ proc extractFirstImage*(html: string): string =
     return ""
   html[urlStart..<urlEnd]
 
+const
+  bgImageExts = [".jpg", ".jpeg", ".png", ".webp"]
+  bgVideoExts = [".mp4", ".webm"]
+
+proc resolveBackground*(slug: string, tags: seq[TagInfo], outputDir: string,
+                        config: SiteConfig): tuple[image, video: string] =
+  ## Cascade: slug-specific > tag-specific > site-wide.
+  ## Returns filenames (empty string = not found).
+  # 1. Slug-specific
+  for ext in bgImageExts:
+    if fileExists(outputDir / "background-" & slug & ext):
+      result.image = "background-" & slug & ext
+      break
+  for ext in bgVideoExts:
+    if fileExists(outputDir / "background-" & slug & ext):
+      result.video = "background-" & slug & ext
+      break
+  if result.image.len > 0 or result.video.len > 0:
+    return
+  # 2. Tag-specific (first matching tag wins)
+  for tag in tags:
+    for ext in bgImageExts:
+      if fileExists(outputDir / "background-" & tag.slug & ext):
+        result.image = "background-" & tag.slug & ext
+        break
+    for ext in bgVideoExts:
+      if fileExists(outputDir / "background-" & tag.slug & ext):
+        result.video = "background-" & tag.slug & ext
+        break
+    if result.image.len > 0 or result.video.len > 0:
+      return
+  # 3. Site-wide fallback
+  result.image = config.backgroundImage
+  result.video = config.backgroundVideo
+
+proc renderBackground*(bg: tuple[image, video: string]): tuple[bodyStyle, bodyInsert: string] =
+  ## Returns (inline style for <body>, HTML to insert after <body>).
+  ## Video gets a fixed <video> element; image gets a CSS background on body.
+  if bg.video.len > 0:
+    var videoTag = "<video autoplay muted loop playsinline style=\"position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1\""
+    if bg.image.len > 0:
+      videoTag &= " poster=\"" & bg.image & "\""
+    videoTag &= "><source src=\"" & bg.video & "\""
+    # Determine type from extension
+    if bg.video.endsWith(".webm"):
+      videoTag &= " type=\"video/webm\""
+    else:
+      videoTag &= " type=\"video/mp4\""
+    videoTag &= "></video>"
+    result.bodyInsert = videoTag
+  elif bg.image.len > 0:
+    result.bodyStyle = "background:url(" & bg.image & ") center/cover no-repeat fixed"
+
 proc resolveOgImage*(content: string, config: SiteConfig): string =
   ## Best OG image: first image in content, else site-wide og-image, else empty.
   ## Returns absolute URL or empty string.

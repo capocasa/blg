@@ -336,12 +336,19 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let outPath = outputDir / src.slug & suffix()
     if force or src.slug in changed or not fileExists(outPath):
       let menus = buildMenus(menuEntries, src.slug)
+      var html: string
       if src.slug in menuPageSlugs:
-        writeFile(outPath, doRenderPage(src, menus))
+        html = doRenderPage(src, menus)
         pagesBuilt += 1
       else:
-        writeFile(outPath, doRenderPost(src, menus))
+        html = doRenderPost(src, menus)
         postsBuilt += 1
+      let bg = renderBackground(resolveBackground(src.slug, src.tags, outputDir, siteConfig))
+      if bg.bodyStyle.len > 0:
+        html = html.replace("<body>", "<body style=\"" & bg.bodyStyle & "\">")
+      if bg.bodyInsert.len > 0:
+        html = html.replace("<body>", "<body>\n" & bg.bodyInsert)
+      writeFile(outPath, html)
       echo "  ", outPath
 
   # Generate paginated index
@@ -349,10 +356,16 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let indexPages = paginate(posts, perPage)
   var listsBuilt = 0
   let indexMenus = buildMenus(menuEntries, "index")
+  let indexBg = renderBackground(resolveBackground("index", @[], outputDir, siteConfig))
   for p, pagePosts in indexPages:
     let outPath = listPagePath(outputDir, "index", p + 1)
     if force or postsChanged or needsRegen(outPath, menuMtime):
-      writeFile(outPath, doRenderList("index", pagePosts, indexMenus, p + 1, indexPages.len))
+      var html = doRenderList("index", pagePosts, indexMenus, p + 1, indexPages.len)
+      if indexBg.bodyStyle.len > 0:
+        html = html.replace("<body>", "<body style=\"" & indexBg.bodyStyle & "\">")
+      if indexBg.bodyInsert.len > 0:
+        html = html.replace("<body>", "<body>\n" & indexBg.bodyInsert)
+      writeFile(outPath, html)
       echo "  ", outPath
       listsBuilt += 1
 
@@ -364,10 +377,16 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let tagChanged = tagPosts.anyIt(it.slug in changed)
     let tagPages = paginate(tagPosts, perPage)
     let tagMenus = buildMenus(menuEntries, tagSlug)
+    let tagBg = renderBackground(resolveBackground(tagSlug, @[], outputDir, siteConfig))
     for p, pagePosts in tagPages:
       let outPath = listPagePath(outputDir, tagSlug, p + 1)
       if force or tagChanged or needsRegen(outPath, menuMtime):
-        writeFile(outPath, doRenderList(toTitleCase(tagSlug), pagePosts, tagMenus, p + 1, tagPages.len))
+        var html = doRenderList(toTitleCase(tagSlug), pagePosts, tagMenus, p + 1, tagPages.len)
+        if tagBg.bodyStyle.len > 0:
+          html = html.replace("<body>", "<body style=\"" & tagBg.bodyStyle & "\">")
+        if tagBg.bodyInsert.len > 0:
+          html = html.replace("<body>", "<body>\n" & tagBg.bodyInsert)
+        writeFile(outPath, html)
         echo "  ", outPath
         listsBuilt += 1
 
@@ -402,6 +421,15 @@ proc discoverAssets(outputDir: string, config: var SiteConfig) =
     break
   if fileExists(outputDir / "apple-touch-icon.png"):
     config.appleTouchIcon = "apple-touch-icon.png"
+  # Site-wide background image/video
+  for ext in [".jpg", ".jpeg", ".png", ".webp"]:
+    if fileExists(outputDir / "background" & ext):
+      config.backgroundImage = "background" & ext
+      break
+  for ext in [".mp4", ".webm"]:
+    if fileExists(outputDir / "background" & ext):
+      config.backgroundVideo = "background" & ext
+      break
 
 proc initPublicDir(outputDir: string) =
   ## Create output dir and write default style.css if missing.
