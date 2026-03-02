@@ -316,6 +316,17 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   createDir(outputDir)
   createDir(cacheDir)
 
+  # Filter scoped CSS/JS out of global asset lists
+  var scopedNames: HashSet[string]
+  for src in sources:
+    scopedNames.incl(src.slug)
+  for tagName in tags.keys:
+    scopedNames.incl(toTagSlug(tagName))
+  for reserved in ["page", "post", "tag"]:
+    scopedNames.incl(reserved)
+  siteConfig.cssFiles = siteConfig.cssFiles.filterIt(it.splitFile.name notin scopedNames)
+  siteConfig.jsFiles = siteConfig.jsFiles.filterIt(it.splitFile.name notin scopedNames)
+
   # Render markdown and track what changed
   var changed: HashSet[string]
   for i, src in sources.mpairs:
@@ -337,13 +348,19 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     if force or src.slug in changed or not fileExists(outPath):
       let menus = buildMenus(menuEntries, src.slug)
       var html: string
+      var pageType: string
       if src.slug in menuPageSlugs:
         html = doRenderPage(src, menus)
+        pageType = "page"
         pagesBuilt += 1
       else:
         html = doRenderPost(src, menus)
+        pageType = "post"
         postsBuilt += 1
-      let bg = renderBackground(resolveBackground(src.slug, src.tags, outputDir, siteConfig))
+      let scoped = renderScopedAssets(src.slug, src.tags, pageType, outputDir)
+      if scoped.len > 0:
+        html = html.replace("</head>", scoped & "</head>")
+      let bg = renderBackground(resolveBackground(src.slug, src.tags, pageType, outputDir, siteConfig))
       if bg.bodyStyle.len > 0:
         html = html.replace("<body>", "<body style=\"" & bg.bodyStyle & "\">")
       if bg.bodyInsert.len > 0:
@@ -356,11 +373,14 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let indexPages = paginate(posts, perPage)
   var listsBuilt = 0
   let indexMenus = buildMenus(menuEntries, "index")
-  let indexBg = renderBackground(resolveBackground("index", @[], outputDir, siteConfig))
+  let indexBg = renderBackground(resolveBackground("index", @[], "", outputDir, siteConfig))
   for p, pagePosts in indexPages:
     let outPath = listPagePath(outputDir, "index", p + 1)
     if force or postsChanged or needsRegen(outPath, menuMtime):
       var html = doRenderList("index", pagePosts, indexMenus, p + 1, indexPages.len)
+      let indexScoped = renderScopedAssets("index", @[], "", outputDir)
+      if indexScoped.len > 0:
+        html = html.replace("</head>", indexScoped & "</head>")
       if indexBg.bodyStyle.len > 0:
         html = html.replace("<body>", "<body style=\"" & indexBg.bodyStyle & "\">")
       if indexBg.bodyInsert.len > 0:
@@ -377,11 +397,14 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let tagChanged = tagPosts.anyIt(it.slug in changed)
     let tagPages = paginate(tagPosts, perPage)
     let tagMenus = buildMenus(menuEntries, tagSlug)
-    let tagBg = renderBackground(resolveBackground(tagSlug, @[], outputDir, siteConfig))
+    let tagBg = renderBackground(resolveBackground(tagSlug, @[], "tag", outputDir, siteConfig))
     for p, pagePosts in tagPages:
       let outPath = listPagePath(outputDir, tagSlug, p + 1)
       if force or tagChanged or needsRegen(outPath, menuMtime):
         var html = doRenderList(toTitleCase(tagSlug), pagePosts, tagMenus, p + 1, tagPages.len)
+        let tagScoped = renderScopedAssets(tagSlug, @[], "tag", outputDir)
+        if tagScoped.len > 0:
+          html = html.replace("</head>", tagScoped & "</head>")
         if tagBg.bodyStyle.len > 0:
           html = html.replace("<body>", "<body style=\"" & tagBg.bodyStyle & "\">")
         if tagBg.bodyInsert.len > 0:

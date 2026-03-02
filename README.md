@@ -277,12 +277,29 @@ Drop a file called `background.jpg` (or `.png`, `.webp`) into `public/` and ever
 You can override per page or per tag:
 
     public/background.jpg             # site-wide fallback
-    public/background-about.jpg       # only the about page
+    public/background-page.jpg        # all pages
+    public/background-post.mp4        # all posts
+    public/background-tag.jpg         # all tag list pages
     public/background-cookie-recipes.mp4  # all posts tagged cookie-recipes
+    public/background-about.jpg       # only the about page
 
-The cascade is: page slug > tag > site-wide. Most specific wins. If both a video and image exist at the same level, the image is used as the video poster.
+The cascade is: slug > tag > type (`page`/`post`/`tag`) > site-wide. Most specific wins. If both a video and image exist at the same level, the image is used as the video poster.
 
 For images, blg sets an inline `background` style on `<body>`. For video, it inserts a fixed `<video>` element. No extra CSS or JS needed.
+
+## Scoped CSS and JavaScript
+
+All CSS and JS files in `public/` are loaded on every page by default. But if a file matches a page slug or tag name, it only loads where it applies.
+
+    public/style.css              # loaded everywhere
+    public/post.css               # all posts
+    public/page.css               # all pages
+    public/tag.js                 # all tag list pages
+    public/tutorials.css          # on the tutorials list page + all posts tagged tutorials
+    public/hello-world.css        # only on the hello-world page
+    public/cookie-recipes.js      # on cookie-recipes tag page + tagged posts
+
+Load order: global > type (`page`/`post`/`tag`) > tag > slug — so more specific styles naturally override broader ones.
 
 ## Templating
 

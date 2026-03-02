@@ -168,9 +168,9 @@ const
   bgImageExts = [".jpg", ".jpeg", ".png", ".webp"]
   bgVideoExts = [".mp4", ".webm"]
 
-proc resolveBackground*(slug: string, tags: seq[TagInfo], outputDir: string,
-                        config: SiteConfig): tuple[image, video: string] =
-  ## Cascade: slug-specific > tag-specific > site-wide.
+proc resolveBackground*(slug: string, tags: seq[TagInfo], pageType: string,
+                        outputDir: string, config: SiteConfig): tuple[image, video: string] =
+  ## Cascade: slug > tag > type (page/post/tag) > site-wide.
   ## Returns filenames (empty string = not found).
   # 1. Slug-specific
   for ext in bgImageExts:
@@ -195,7 +195,19 @@ proc resolveBackground*(slug: string, tags: seq[TagInfo], outputDir: string,
         break
     if result.image.len > 0 or result.video.len > 0:
       return
-  # 3. Site-wide fallback
+  # 3. Type-specific (page/post/tag)
+  if pageType.len > 0:
+    for ext in bgImageExts:
+      if fileExists(outputDir / "background-" & pageType & ext):
+        result.image = "background-" & pageType & ext
+        break
+    for ext in bgVideoExts:
+      if fileExists(outputDir / "background-" & pageType & ext):
+        result.video = "background-" & pageType & ext
+        break
+    if result.image.len > 0 or result.video.len > 0:
+      return
+  # 4. Site-wide fallback
   result.image = config.backgroundImage
   result.video = config.backgroundVideo
 
@@ -216,6 +228,39 @@ proc renderBackground*(bg: tuple[image, video: string]): tuple[bodyStyle, bodyIn
     result.bodyInsert = videoTag
   elif bg.image.len > 0:
     result.bodyStyle = "background:url(" & bg.image & ") center/cover no-repeat fixed"
+
+proc renderScopedAssets*(slug: string, tags: seq[TagInfo], pageType: string,
+                         outputDir: string): string =
+  ## Return <link>/<script> tags for type, tag, and slug-scoped CSS/JS.
+  ## Load order: type (broadest) > tag > slug (most specific).
+  var seen: seq[string]
+  # 1. Type-level (page/post/tag)
+  if pageType.len > 0:
+    let typeCss = pageType & ".css"
+    if fileExists(outputDir / typeCss):
+      result &= "  <link rel=\"stylesheet\" href=\"" & typeCss & "\">\n"
+      seen.add(typeCss)
+    let typeJs = pageType & ".js"
+    if fileExists(outputDir / typeJs):
+      result &= "  <script src=\"" & typeJs & "\"></script>\n"
+      seen.add(typeJs)
+  # 2. Tag-level
+  for tag in tags:
+    let cssFile = tag.slug & ".css"
+    if fileExists(outputDir / cssFile) and cssFile notin seen:
+      result &= "  <link rel=\"stylesheet\" href=\"" & cssFile & "\">\n"
+      seen.add(cssFile)
+    let jsFile = tag.slug & ".js"
+    if fileExists(outputDir / jsFile) and jsFile notin seen:
+      result &= "  <script src=\"" & jsFile & "\"></script>\n"
+      seen.add(jsFile)
+  # 3. Slug-level
+  let slugCss = slug & ".css"
+  if fileExists(outputDir / slugCss) and slugCss notin seen:
+    result &= "  <link rel=\"stylesheet\" href=\"" & slugCss & "\">\n"
+  let slugJs = slug & ".js"
+  if fileExists(outputDir / slugJs) and slugJs notin seen:
+    result &= "  <script src=\"" & slugJs & "\"></script>\n"
 
 proc resolveOgImage*(content: string, config: SiteConfig): string =
   ## Best OG image: first image in content, else site-wide og-image, else empty.
