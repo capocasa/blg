@@ -344,12 +344,56 @@ proc linkFirstH1*(content: string, url: string): string =
   let inner = content[tagEnd..<h1End]
   result = content[0..<tagEnd] & "<a href=\"" & url & "\">" & inner & "</a>" & content[h1End..^1]
 
+proc closeUnclosedTags(html: string): string =
+  ## Append closing tags for any unclosed HTML elements.
+  ## Prevents bold/italic/link leaking when preview is truncated mid-tag.
+  var openTags: seq[string]
+  var i = 0
+  while i < html.len:
+    if html[i] == '<':
+      let tagStart = i + 1
+      if tagStart < html.len and html[tagStart] == '/':
+        # Closing tag: extract name and pop from stack
+        let nameStart = tagStart + 1
+        var nameEnd = nameStart
+        while nameEnd < html.len and html[nameEnd] notin {'>', ' ', '\t', '\n'}:
+          inc nameEnd
+        let name = html[nameStart..<nameEnd].toLowerAscii
+        # Pop the matching open tag (search from top)
+        for j in countdown(openTags.high, 0):
+          if openTags[j] == name:
+            openTags.delete(j)
+            break
+      elif tagStart < html.len and html[tagStart] != '!':
+        # Opening tag: extract name
+        var nameEnd = tagStart
+        while nameEnd < html.len and html[nameEnd] notin {'>', ' ', '\t', '\n', '/'}:
+          inc nameEnd
+        let name = html[tagStart..<nameEnd].toLowerAscii
+        # Skip self-closing and void elements
+        let voids = ["br", "hr", "img", "input", "meta", "link", "read-more"]
+        if name notin voids:
+          # Check for self-closing />
+          var closePos = nameEnd
+          while closePos < html.len and html[closePos] != '>':
+            inc closePos
+          if closePos > 0 and html[closePos - 1] != '/':
+            openTags.add(name)
+      # Skip to end of tag
+      while i < html.len and html[i] != '>':
+        inc i
+    inc i
+  # Close remaining open tags in reverse order
+  for j in countdown(openTags.high, 0):
+    result.add("</" & openTags[j] & ">")
+  result = html & result
+
 proc extractPreview*(content: string): string =
   ## Return content up to <read-more/> or first </p>.
   let marker = "<read-more/>"
   let markerPos = content.find(marker)
   if markerPos >= 0:
-    result = content[0..<markerPos]
+    result = closeUnclosedTags(content[0..<markerPos])
   else:
     # Take first paragraph if no marker found
     let pEnd = content.find("</p>")
@@ -528,7 +572,7 @@ proc renderList*(listTitle: string, posts: seq[SourceFile], menus: seq[seq[MenuI
     let url = post.slug & urlSuffix
     previews.add(PostPreview(
       slug: post.slug,
-      preview: linkFirstH1(extractPreview(post.content), url),
+      preview: extractPreview(post.content),
       url: url,
       date: post.createdAt,
       dateHasTime: post.createdAtHasTime,
