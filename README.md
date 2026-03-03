@@ -327,6 +327,13 @@ I have lots of ideas! I do intend to implement them.
 - [ ] Mac support
 - [ ] More themes
 
+# Changelog
+
+```
+0.2.0    Scoped assets, backgrounds, OG tags, RSS, sitemap, preview fix
+0.1.0    Initial release
+```
+
 # License
 
 MIT

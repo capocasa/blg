@@ -1,5 +1,5 @@
 # Package
-version       = "0.1.0"
+version       = "0.2.0"
 author        = "Carlo Capocasa"
 description   = "Static blog generator using markdown and symlinks"
 license       = "MIT"
