@@ -23,18 +23,12 @@ ${renderTopNav(topMenu)}
 #  for post in posts:
       <li>
         <article>
-#    if post.tags.len > 0:
-          <div class="tags">
-#      for tag in post.tags:
-            <a href="${tag.slug}.html">${tag.label}</a>
-#      end for
-          </div>
-#    end if
+          <a href="${post.url}" class="post-link">
           <time datetime="${formatDate(post.date, post.dateHasTime)}">${formatDate(post.date, post.dateHasTime)}</time>
           <div class="preview">
 ${post.preview}
           </div>
-          <a href="${post.url}" class="read-more">Read more</a>
+          </a>
         </article>
       </li>
 #  end for

@@ -82,6 +82,8 @@ when defined(linux):
 
 const defaultThemeCss = staticRead("../assets/default-theme.css")
   ## Embedded default CSS theme, written on first run.
+const searchJs = staticRead("../assets/search.js")
+  ## Embedded search client with inlined MiniSearch.
 
 var templateLib: TemplateLib   ## Loaded custom template library (if any)
 var ext: string = "html"       ## Output file extension from BLG_EXT
@@ -276,6 +278,9 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let templatePath = cacheDir / DynlibFormat % "template"
   templateLib = loadTemplateLib(templatePath)
   helperLib = templateLib  # Enable helper overrides in renderer
+  searchUrlSuffix = suffix()  # Set suffix for search form in nav
+  searchEnabled = siteConfig.enableSearch
+  rssEnabled = siteConfig.enableRss
 
   let menuListPath = contentDir / "menu.list"
 
@@ -322,7 +327,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     scopedNames.incl(src.slug)
   for tagName in tags.keys:
     scopedNames.incl(toTagSlug(tagName))
-  for reserved in ["page", "post", "tag"]:
+  for reserved in ["page", "post", "tag", "search"]:
     scopedNames.incl(reserved)
   siteConfig.cssFiles = siteConfig.cssFiles.filterIt(it.splitFile.name notin scopedNames)
   siteConfig.jsFiles = siteConfig.jsFiles.filterIt(it.splitFile.name notin scopedNames)
@@ -413,15 +418,31 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
         echo "  ", outPath
         listsBuilt += 1
 
-  # Generate RSS feed and sitemap (requires baseUrl)
-  if siteConfig.baseUrl.len > 0:
+  # Generate RSS feed (requires baseUrl)
+  if siteConfig.enableRss and siteConfig.baseUrl.len > 0:
     let feedPath = outputDir / "feed.xml"
     writeFile(feedPath, generateRssFeed(posts, siteConfig, suffix()))
     echo "  ", feedPath
+
+  # Generate sitemap (requires baseUrl)
+  if siteConfig.enableSitemap and siteConfig.baseUrl.len > 0:
     let sitemapPath = outputDir / "sitemap.xml"
     let tagSlugList = toSeq(tags.keys).mapIt(toTagSlug(it))
     writeFile(sitemapPath, generateSitemap(sources, tagSlugList, siteConfig, suffix()))
     echo "  ", sitemapPath
+
+  # Generate search page and index
+  if siteConfig.enableSearch:
+    writeFile(outputDir / "search.js", searchJs)
+    writeFile(outputDir / "search-index.json", generateSearchIndex(posts, siteConfig, suffix()))
+    let searchPagePath = outputDir / "search" & suffix()
+    let searchMenus = buildMenus(menuEntries, "search")
+    var searchHtml = generateSearchPage(searchMenus, siteConfig, suffix())
+    let searchScoped = renderScopedAssets("search", @[], "", outputDir)
+    if searchScoped.len > 0:
+      searchHtml = searchHtml.replace("</head>", searchScoped & "</head>")
+    writeFile(searchPagePath, searchHtml)
+    echo "  ", searchPagePath
 
   echo "Built: ", pagesBuilt, " pages, ", postsBuilt, " posts, ", listsBuilt, " lists (", changed.len, " sources changed)"
 
@@ -529,6 +550,7 @@ Options:
 Environment variables:
   BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT, BLG_DATE_FORMAT
   BLG_BASE_URL (prepend to relative URLs), BLG_SITE_TITLE, BLG_SITE_DESCRIPTION
+  BLG_SEARCH, BLG_RSS, BLG_SITEMAP (on by default; set to "false" to disable)
   Date presets: iso, us-long, us-short, eu-long, eu-medium, eu-short, uk (or custom format)
 
 Precedence: option > env var > .env file > default"""

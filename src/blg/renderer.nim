@@ -2,10 +2,13 @@
 ## Handles date extraction, HTML caching, link processing, and page generation.
 ## See `blg <blg.html>`_ for template override instructions.
 
-import std/[os, times, strutils, options]
+import std/[os, times, strutils, options, json]
 import md, types, datetime, dynload
 
 var helperLib*: TemplateLib  ## Set by blg.nim to enable template overrides
+var searchUrlSuffix*: string = ".html"  ## URL suffix for search form action, set by blg.nim
+var searchEnabled*: bool = true  ## Whether to show search form in nav, set by blg.nim
+var rssEnabled*: bool = true  ## Whether to show RSS link in head, set by blg.nim
 
 proc isIsoDate*(line: string): bool =
   ## True if line starts with YYYY-MM-DD, optionally with HH:MM[:SS].
@@ -652,3 +655,46 @@ proc generateSitemap*(sources: seq[SourceFile], tagSlugs: seq[string], config: S
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 """ & urls & """</urlset>
 """
+
+proc generateSearchIndex*(posts: seq[SourceFile], config: SiteConfig, urlSuffix: string): string =
+  ## Generate JSON search index for client-side MiniSearch.
+  var arr = newJArray()
+  for i, post in posts:
+    var preview = extractPreview(post.content)
+    # Strip H1 heading from preview (title is a separate field)
+    let h1End = preview.find("</h1>")
+    if h1End >= 0:
+      preview = preview[h1End + 5..^1]
+    let body = stripHtmlTags(preview).strip
+    var tagLabels: seq[string]
+    for tag in post.tags:
+      tagLabels.add(tag.label)
+    arr.add(%*{
+      "id": i,
+      "title": post.title,
+      "url": post.slug & urlSuffix,
+      "body": body,
+      "tags": tagLabels.join(" "),
+      "date": formatDate(post.createdAt, post.createdAtHasTime)
+    })
+  result = $arr
+
+proc generateSearchPage*(menus: seq[seq[MenuItem]], config: SiteConfig, urlSuffix: string): string =
+  ## Generate search results HTML page with client-side search.
+  let topMenu = if menus.len > 0: menus[0] else: @[]
+  let bottomMenu = if menus.len > 1: menus[^1] else: @[]
+  let fullTitle = if config.siteTitle.len > 0: "Search - " & config.siteTitle else: "Search"
+  let head = renderHead(fullTitle, config)
+  result = "<!DOCTYPE html>\n<html lang=\"en\">\n" & head & "\n<body>\n"
+  result &= renderSiteHeader(config)
+  result &= renderTopNav(topMenu)
+  result &= """  <main>
+    <div class="search-page">
+      <ul class="post-list" id="search-results"></ul>
+      <p id="search-empty" class="search-message" hidden>No results found.</p>
+      <noscript><p class="search-message">JavaScript is required for search.</p></noscript>
+    </div>
+  </main>
+"""
+  result &= renderFooter(bottomMenu, menus.len > 1)
+  result &= "</body>\n</html>\n"

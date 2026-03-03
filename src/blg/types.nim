@@ -16,6 +16,9 @@ type
     appleTouchIcon*: string   ## Apple touch icon discovered in public/
     backgroundImage*: string  ## Site-wide background image (background.jpg/png/webp)
     backgroundVideo*: string  ## Site-wide background video (background.mp4/webm)
+    enableSearch*: bool       ## Generate search page and index (default: true)
+    enableRss*: bool          ## Generate RSS feed (default: true)
+    enableSitemap*: bool      ## Generate sitemap.xml (default: true)
 
   TagInfo* = object
     ## Tag identifier with URL-safe slug and display label.
@@ -85,8 +88,17 @@ proc toTitleCase*(slug: string): string =
       else:
         result.add(c)
 
+proc envBool(key: string, default: bool = true): bool =
+  ## Read a boolean env var; "0", "false", "no", "off" = false, anything else or missing = default.
+  let val = getEnv(key, "").toLower.strip
+  if val.len == 0: return default
+  val notin ["0", "false", "no", "off"]
+
 proc loadSiteConfig*(): SiteConfig =
   ## Load BLG_BASE_URL, BLG_SITE_TITLE, BLG_SITE_DESCRIPTION from env.
   result.baseUrl = getEnv("BLG_BASE_URL", "").strip(chars = {'/'})
   result.siteTitle = getEnv("BLG_SITE_TITLE", "")
   result.siteDescription = getEnv("BLG_SITE_DESCRIPTION", "")
+  result.enableSearch = envBool("BLG_SEARCH")
+  result.enableRss = envBool("BLG_RSS")
+  result.enableSitemap = envBool("BLG_SITEMAP")

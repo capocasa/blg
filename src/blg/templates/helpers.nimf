@@ -36,7 +36,7 @@ ${builtinRenderMenuItem(child)}
 #  if config.appleTouchIcon.len > 0:
   <link rel="apple-touch-icon" href="${config.appleTouchIcon}">
 #  end if
-#  if config.baseUrl.len > 0:
+#  if rssEnabled and config.baseUrl.len > 0:
   <link rel="alternate" type="application/rss+xml" title="RSS" href="${config.baseUrl}/feed.xml">
 #  end if
 </head>
@@ -54,15 +54,20 @@ ${builtinRenderMenuItem(child)}
 #  end if
 #end proc
 #proc builtinRenderTopNav(topMenu: seq[MenuItem]): string =
-#  if topMenu.len > 0:
   <nav>
+#  if topMenu.len > 0:
     <ul>
 #    for item in topMenu:
 ${builtinRenderMenuItem(item)}
 #    end for
     </ul>
-  </nav>
 #  end if
+#  if searchEnabled:
+    <form class="search-form" action="search${searchUrlSuffix}" method="get">
+      <input type="search" name="q" placeholder="Search…" aria-label="Search">
+    </form>
+#  end if
+  </nav>
 #end proc
 #proc builtinRenderSiteHeader(config: SiteConfig): string =
 #  if config.siteTitle.len > 0:
