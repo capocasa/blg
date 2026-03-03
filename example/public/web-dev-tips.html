@@ -3,33 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>web-dev-tips</title>
+  <meta name="description" content="A blog about code">
+  <title>Web Development Tips - My Test Blog</title>
   <link rel="stylesheet" href="style.css">
+  <meta property="og:title" content="Web Development Tips - My Test Blog">
+  <meta property="og:description" content="A blog about code">
+  <link rel="stylesheet" href="post.css">
+  <link rel="stylesheet" href="tutorials.css">
 </head>
+
 <body>
+  <header class="site-header">
+    <site-title><a href=".">My Test Blog</a></site-title>
+    <tag-line>A blog about code</tag-line>
+  </header>
+
   <nav>
     <ul>
-      <li><a href="index.html">Home</a></li>
-      <li><a href="about.html">about</a></li>
-      <li><a href="tutorials.html">tutorials</a></li>
+      <li><a href="." data-text="Index">Index</a>
+      </li>
+
+      <li><a href="about.html" data-text="About">About</a>
+        <ul>
+      <li><a href="contact.html" data-text="Contact">Contact</a>
+      </li>
+
+      <li><a href="team.html" data-text="Team">Team</a>
+      </li>
+
+        </ul>
+      </li>
+
+      <li><a href="tutorials.html" data-text="Tutorials">Tutorials</a>
+      </li>
+
     </ul>
   </nav>
+
   <main>
     <article class="post">
-      <header>
-        <h1>web-dev-tips</h1>
-        <time datetime="16 February 2026">16 February 2026</time>
-      </header>
+      <time datetime="15 February 2026">15 February 2026</time>
+      <div class="tags">
+        <a href="tutorials.html">Tutorials</a>
+      </div>
       <div class="content">
 <h1> Web Development Tips</h1>
-<p>Some useful tips for web development.</p>
-<p>---</p>
+<p>Some useful tips for web development.<read-more/></p>
 <ol><li> Keep it simple</li><li>Use semantic HTML</li><li>Progressive enhancement</li><li>Test on real devices</li></ol>
       </div>
-      <footer>
-        <p class="modified">Last updated: 15 February 2026</p>
-      </footer>
     </article>
   </main>
+  <footer>
+    <nav class="footer-nav">
+      <ul>
+      <li><a href="legal.html" data-text="Legal">Legal</a>
+      </li>
+
+      <li><a href="privacy.html" data-text="Privacy">Privacy</a>
+      </li>
+
+      <li>© 2026
+      </li>
+
+      </ul>
+    </nav>
+  </footer>
+
 </body>
 </html>

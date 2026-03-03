@@ -2,10 +2,12 @@
 
 # Hello World
 
-Welcome to my first blog post!
+Welcome to my first blog post! This one has **bold text that
+spans across the preview boundary.
 
 
 
-This is the content below the fold. It appears on the individual post page but not in the list preview.
+The bold continues here** but the preview is already cut off above. Thanks to automatic tag closing, the rest of the page stays normal.
 
 Some more content here with **bold** and *italic* text.
+

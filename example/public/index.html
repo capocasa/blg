@@ -3,51 +3,116 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>index</title>
+  <meta name="description" content="A blog about code">
+  <title>My Test Blog - A blog about code</title>
   <link rel="stylesheet" href="style.css">
+  <meta property="og:title" content="My Test Blog - A blog about code">
+  <meta property="og:description" content="A blog about code">
 </head>
+
 <body>
+  <header class="site-header">
+    <site-title><a href=".">My Test Blog</a></site-title>
+    <tag-line>A blog about code</tag-line>
+  </header>
+
   <nav>
     <ul>
-      <li><a href="index.html" class="active">Home</a></li>
-      <li><a href="about.html">about</a></li>
-      <li><a href="tutorials.html">tutorials</a></li>
+      <li><a href="." class="active" data-text="Index">Index</a>
+      </li>
+
+      <li><a href="about.html" data-text="About">About</a>
+        <ul>
+      <li><a href="contact.html" data-text="Contact">Contact</a>
+      </li>
+
+      <li><a href="team.html" data-text="Team">Team</a>
+      </li>
+
+        </ul>
+      </li>
+
+      <li><a href="tutorials.html" data-text="Tutorials">Tutorials</a>
+      </li>
+
     </ul>
   </nav>
+
   <main>
-    <h1>index</h1>
     <ul class="post-list">
       <li>
         <article>
-          <h2><a href="hello-world.html">hello-world</a></h2>
-          <time datetime="16 February 2026">16 February 2026</time>
+          <a href="advanced-topics.html" class="post-link">
+          <time datetime="21 February 2026">21 February 2026</time>
           <div class="preview">
-<h1> Hello World</h1>
-<p>Welcome to my first blog post!</p>
+<h1> Advanced Topics</h1>
+<p>This covers advanced Nim concepts, also nested under Tutorials.</p>
           </div>
+          </a>
         </article>
       </li>
       <li>
         <article>
-          <h2><a href="nim-basics.html">nim-basics</a></h2>
-          <time datetime="16 February 2026">16 February 2026</time>
+          <a href="getting-started.html" class="post-link">
+          <time datetime="20 February 2026">20 February 2026</time>
+          <div class="preview">
+<h1> Getting Started with Nim</h1>
+<p>This is a beginner's guide nested under Tutorials.</p>
+          </div>
+          </a>
+        </article>
+      </li>
+      <li>
+        <article>
+          <a href="hello-world.html" class="post-link">
+          <time datetime="15 February 2026">15 February 2026</time>
+          <div class="preview">
+<h1> Hello World</h1>
+<p>Welcome to my first blog post! This one has <strong>bold text that
+spans across the preview boundary.</strong></p>
+          </div>
+          </a>
+        </article>
+      </li>
+      <li>
+        <article>
+          <a href="nim-basics.html" class="post-link">
+          <time datetime="15 February 2026">15 February 2026</time>
           <div class="preview">
 <h1> Nim Basics</h1>
 <p>A quick introduction to Nim programming.</p>
           </div>
+          </a>
         </article>
       </li>
       <li>
         <article>
-          <h2><a href="web-dev-tips.html">web-dev-tips</a></h2>
-          <time datetime="16 February 2026">16 February 2026</time>
+          <a href="web-dev-tips.html" class="post-link">
+          <time datetime="15 February 2026">15 February 2026</time>
           <div class="preview">
 <h1> Web Development Tips</h1>
 <p>Some useful tips for web development.</p>
           </div>
+          </a>
         </article>
       </li>
     </ul>
   </main>
+  <footer>
+    <nav class="footer-nav">
+      <ul>
+      <li><a href="legal.html" data-text="Legal">Legal</a>
+      </li>
+
+      <li><a href="privacy.html" data-text="Privacy">Privacy</a>
+      </li>
+
+      <li>© 2026
+      </li>
+
+      </ul>
+    </nav>
+  </footer>
+
 </body>
 </html>

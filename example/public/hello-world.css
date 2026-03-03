@@ -1,0 +1,7 @@
+/* Scoped to hello-world slug — only loaded on that page */
+.post h1 {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

@@ -1,0 +1,5 @@
+/* Scoped to tutorials tag — loaded on tutorials list + tagged posts */
+.preview h1 a,
+.post h1 {
+  color: #2563eb;
+}
