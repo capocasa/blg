@@ -115,6 +115,8 @@ proc loadMenuList(path: string, tags: seq[string], pageSlugs: HashSet[string]): 
     for tag in sortedTags:
       let slug = toTagSlug(tag)
       defaultMenu.add(MenuEntry(kind: "tag", slug: slug, label: toTitleCase(slug), indent: 0))
+    if "about" in pageSlugs:
+      defaultMenu.add(MenuEntry(kind: "page", slug: "about", label: "About", indent: 0))
     result.add(defaultMenu)
     return
 
