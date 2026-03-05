@@ -235,6 +235,7 @@ proc discoverSourceFiles(contentDir: string): seq[SourceFile] =
       createdAt: createdAt,
       createdAtHasTime: hasTime,
       modifiedAt: info.lastWriteTime,
+      links: extractMarkdownLinks(content),
     ))
   result.sort(proc(a, b: SourceFile): int = cmp(b.createdAt, a.createdAt))
 
@@ -270,6 +271,51 @@ proc listPagePath(outputDir, name: string, page: int): string =
   ## Return output path: name.html, name-2.html, etc.
   if page == 1: outputDir / name & suffix()
   else: outputDir / name & "-" & $page & suffix()
+
+proc checkLinks(sources: seq[SourceFile], tagSlugs: HashSet[string], ext: string, strict: bool): int =
+  ## Validate internal links in markdown against known targets. Returns count of broken links.
+  var validTargets: HashSet[string]
+  let urlSuffix = if ext.len > 0: "." & ext else: ""
+
+  # All source slugs are valid targets
+  for src in sources:
+    validTargets.incl(src.slug & urlSuffix)  # e.g. "about.html"
+    validTargets.incl(src.slug)               # bare slug
+  # Tag pages
+  for slug in tagSlugs:
+    validTargets.incl(slug & urlSuffix)
+    validTargets.incl(slug)
+  # Index
+  validTargets.incl("." )
+  validTargets.incl("index" & urlSuffix)
+  validTargets.incl("index")
+  # Search page
+  validTargets.incl("search" & urlSuffix)
+  validTargets.incl("search")
+
+  var broken = 0
+  for src in sources:
+    for link in src.links:
+      # Strip fragment
+      var target = link.url
+      let hashPos = target.find('#')
+      if hashPos >= 0:
+        target = target[0..<hashPos]
+      if target.len == 0:
+        continue  # pure anchor to same page
+      # Strip leading ./
+      if target.startsWith("./"):
+        target = target[2..^1]
+      if target notin validTargets:
+        echo "Warning: broken link '", link.url, "' in ", src.path, ":", link.line
+        inc broken
+
+  if broken > 0:
+    if strict:
+      echo "Error: ", broken, " broken link(s) found (strict mode)"
+    else:
+      echo broken, " broken link(s) found"
+  broken
 
 proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = false) =
   ## Main build: discover files, render changed content, write HTML.
@@ -313,6 +359,11 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     if src.slug in tagNames:
       echo "Error: page '", src.slug, "' has same name as tag directory"
       quit(1)
+
+  # Check internal links in markdown sources
+  let brokenCount = checkLinks(sources, tagNames, ext, siteConfig.strictLinks)
+  if brokenCount > 0 and siteConfig.strictLinks:
+    quit(1)
 
   # Track menu.list mtime for list invalidation
   let menuMtime = if fileExists(menuListPath): getFileInfo(menuListPath).lastWriteTime
@@ -541,7 +592,8 @@ Options:
   -o, --output <dir>   Output directory (default: public)
   -c, --cache <dir>    Cache directory (default: cache)
   --per-page <n>       Items per page (default: 20)
-  -f, --force          Force regenerate all (ignore cache)"""
+  -f, --force          Force regenerate all (ignore cache)
+  --strict-links       Fail build on broken internal links"""
   when defined(linux):
     echo "  -d, --daemon         Watch for changes and rebuild (5s debounce)"
   echo """  -e, --env <file>     Env file (default: .env)
@@ -551,6 +603,7 @@ Environment variables:
   BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT, BLG_DATE_FORMAT
   BLG_BASE_URL (prepend to relative URLs), BLG_SITE_TITLE, BLG_SITE_DESCRIPTION
   BLG_SEARCH, BLG_RSS, BLG_SITEMAP (on by default; set to "false" to disable)
+  BLG_STRICT_LINKS (fail build on broken internal links; default: false)
   Date presets: iso, us-long, us-short, eu-long, eu-medium, eu-short, uk (or custom format)
 
 Precedence: option > env var > .env file > default"""
@@ -625,6 +678,7 @@ when isMainModule:
           of "h", "help": usage()
           of "f", "force": forceMode = true
           of "d", "daemon": daemonMode = true
+          of "strict-links": siteConfig.strictLinks = true
           else: echo "Unknown option: ", key; quit(1)
         else:
           case key
@@ -635,6 +689,7 @@ when isMainModule:
           of "e", "env": expectVal = "env"
           of "h", "help": usage()
           of "f", "force": forceMode = true
+          of "strict-links": siteConfig.strictLinks = true
           else: echo "Unknown option: ", key; quit(1)
     of cmdArgument:
       echo "Unexpected argument: ", key; quit(1)

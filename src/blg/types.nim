@@ -19,11 +19,17 @@ type
     enableSearch*: bool       ## Generate search page and index (default: true)
     enableRss*: bool          ## Generate RSS feed (default: true)
     enableSitemap*: bool      ## Generate sitemap.xml (default: true)
+    strictLinks*: bool        ## Fail build on broken internal links (default: false)
 
   TagInfo* = object
     ## Tag identifier with URL-safe slug and display label.
     slug*: string   ## Lowercase hyphenated form for URLs
     label*: string  ## Title case for display
+
+  MarkdownLink* = object
+    ## A link extracted from markdown source.
+    url*: string    ## Link target
+    line*: int      ## Source line number (1-indexed)
 
   SourceFile* = object
     ## Parsed markdown file with extracted metadata.
@@ -35,6 +41,7 @@ type
     modifiedAt*: Time         ## File modification time
     content*: string          ## Rendered HTML content
     tags*: seq[TagInfo]       ## Tags this post belongs to
+    links*: seq[MarkdownLink] ## Internal links found in source
 
   MenuItem* = object
     ## Navigation entry for menus.
@@ -102,3 +109,4 @@ proc loadSiteConfig*(): SiteConfig =
   result.enableSearch = envBool("BLG_SEARCH")
   result.enableRss = envBool("BLG_RSS")
   result.enableSitemap = envBool("BLG_SITEMAP")
+  result.strictLinks = envBool("BLG_STRICT_LINKS", false)
