@@ -88,6 +88,7 @@ const searchJs = staticRead("../assets/search.js")
 var templateLib: TemplateLib   ## Loaded custom template library (if any)
 var ext: string = "html"       ## Output file extension from BLG_EXT
 var siteConfig: SiteConfig     ## Site-wide config from environment
+var snippetBaseDir: string = "" ## Directory containing HTML snippets (sibling of md dir)
 
 proc suffix(): string =
   ## Return ".html" or "" for extensionless URLs.
@@ -157,6 +158,77 @@ proc loadMenuList(path: string, tags: seq[string], pageSlugs: HashSet[string]): 
   # Don't forget the last menu
   if currentMenu.len > 0:
     result.add(currentMenu)
+
+# ---------------------------------------------------------------------------
+# HTML snippet inclusion
+# ---------------------------------------------------------------------------
+proc applySnippets(html: string, slug: string, tagSlugs: seq[string]): string =
+  ## Insert HTML snippets into structural tags.
+  ## ``slug`` is the page/tag slug (e.g., "about" or "mytag").
+  ## ``tagSlugs`` are the tags associated with the page (empty for tag index pages).
+  var resultHtml = html
+  if snippetBaseDir.len == 0:
+    return resultHtml
+  let snippetDir = snippetBaseDir
+
+  # Supported structural tags.
+  let tags = @["body", "content"]
+  for tag in tags:
+    # ----- global top snippet (e.g., body.html) -----
+    let topPath = snippetDir / (tag & ".html")
+    if fileExists(topPath):
+      let snippet = readFile(topPath)
+      var openTag = "<" & tag & ">"
+      if tag == "content":
+        openTag = "<div class=\"content\">"
+      let pos = resultHtml.find(openTag)
+      if pos >= 0:
+        let insertPos = pos + openTag.len
+        resultHtml = resultHtml[0..<insertPos] & "\n" & snippet & "\n" & resultHtml[insertPos..^1]
+
+    # ----- per‑slug top snippet (myslug-body.html) -----
+    if slug.len > 0:
+      let slugTop = snippetDir / (slug & "-" & tag & ".html")
+      if fileExists(slugTop):
+        echo "Found per‑slug snippet: " & slugTop
+        let snippet = readFile(slugTop)
+        var openTag = "<" & tag & ">"
+        if tag == "content":
+          openTag = "<div class=\"content\">"
+        let pos = resultHtml.find(openTag)
+        if pos >= 0:
+          let insertPos = pos + openTag.len
+          resultHtml = resultHtml[0..<insertPos] & "\n" & snippet & "\n" & resultHtml[insertPos..^1]
+
+    # ----- bottom snippets (only for content container) -----
+    if tag == "content":
+      # global end snippet (content-end.html)
+      let endPath = snippetDir / (tag & "-end.html")
+      if fileExists(endPath):
+        let snippet = readFile(endPath)
+        let closeTag = "</div>"
+        let pos = resultHtml.rfind(closeTag)
+        if pos >= 0:
+          resultHtml = resultHtml[0..<pos] & "\n" & snippet & "\n" & resultHtml[pos..^1]
+      # per‑slug end snippet (myslug-body-end.html)
+      if slug.len > 0:
+        let slugEnd = snippetDir / (slug & "-" & tag & "-end.html")
+        if fileExists(slugEnd):
+          let snippet = readFile(slugEnd)
+          let closeTag = "</div>"
+          let pos = resultHtml.rfind(closeTag)
+          if pos >= 0:
+            resultHtml = resultHtml[0..<pos] & "\n" & snippet & "\n" & resultHtml[pos..^1]
+      # per‑tag end snippets (mytag-body-end.html)
+      for t in tagSlugs:
+        let tagEnd = snippetDir / (t & "-" & tag & "-end.html")
+        if fileExists(tagEnd):
+          let snippet = readFile(tagEnd)
+          let closeTag = "</div>"
+          let pos = resultHtml.rfind(closeTag)
+          if pos >= 0:
+            resultHtml = resultHtml[0..<pos] & "\n" & snippet & "\n" & resultHtml[pos..^1]
+  return resultHtml
 
 proc buildMenuItems(entries: seq[MenuEntry], activeItem: string, startIdx: var int, parentIndent: int): seq[MenuItem] =
   ## Convert flat MenuEntry list to nested MenuItem tree.
@@ -371,6 +443,17 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
   let menuMtime = if fileExists(menuListPath): getFileInfo(menuListPath).lastWriteTime
                   else: fromUnix(0)
 
+  # Determine snippet directory: it should sit alongside the markdown source
+  # directory (e.g., <project>/snippets when <project>/md is the content dir).
+  let absContent = absolutePath(contentDir)
+  let parentDir = absContent.splitPath.head
+  let possibleSnippets = parentDir / "snippets"
+  if dirExists(possibleSnippets):
+    snippetBaseDir = possibleSnippets
+    echo "Snippet directory detected: " & snippetBaseDir
+  else:
+    snippetBaseDir = ""  # no snippets will be applied
+
   createDir(outputDir)
   createDir(cacheDir)
 
@@ -423,6 +506,9 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
         html = html.replace("<body>", "<body style=\"" & bg.bodyStyle & "\">")
       if bg.bodyInsert.len > 0:
         html = html.replace("<body>", "<body>\n" & bg.bodyInsert)
+      # Apply HTML snippet insertion (head, body, content)
+      echo "Applying snippets to ", src.slug
+      html = applySnippets(html, src.slug, src.tags.mapIt(it.slug))
       writeFile(outPath, html)
       echo "  ", outPath
 
@@ -443,6 +529,8 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
         html = html.replace("<body>", "<body style=\"" & indexBg.bodyStyle & "\">")
       if indexBg.bodyInsert.len > 0:
         html = html.replace("<body>", "<body>\n" & indexBg.bodyInsert)
+      # Apply snippets for index pages
+      html = applySnippets(html, "index", @[])
       writeFile(outPath, html)
       echo "  ", outPath
       listsBuilt += 1
@@ -459,7 +547,7 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     for p, pagePosts in tagPages:
       let outPath = listPagePath(outputDir, tagSlug, p + 1)
       if force or tagChanged or needsRegen(outPath, menuMtime):
-        var html = doRenderList(toTitleCase(tagSlug), pagePosts, tagMenus, p + 1, tagPages.len)
+        var html = doRenderList(tagSlug, pagePosts, tagMenus, p + 1, tagPages.len)
         let tagScoped = renderScopedAssets(tagSlug, @[], "tag", outputDir)
         if tagScoped.len > 0:
           html = html.replace("</head>", tagScoped & "</head>")
@@ -467,6 +555,8 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
           html = html.replace("<body>", "<body style=\"" & tagBg.bodyStyle & "\">")
         if tagBg.bodyInsert.len > 0:
           html = html.replace("<body>", "<body>\n" & tagBg.bodyInsert)
+        # Apply snippets for tag pages
+        html = applySnippets(html, tagSlug, @[])
         writeFile(outPath, html)
         echo "  ", outPath
         listsBuilt += 1
@@ -494,6 +584,8 @@ proc buildSite*(contentDir, outputDir, cacheDir: string, perPage: int, force = f
     let searchScoped = renderScopedAssets("search", @[], "", outputDir)
     if searchScoped.len > 0:
       searchHtml = searchHtml.replace("</head>", searchScoped & "</head>")
+    # Apply snippets for search page
+    searchHtml = applySnippets(searchHtml, "search", @[])
     writeFile(searchPagePath, searchHtml)
     echo "  ", searchPagePath
 
