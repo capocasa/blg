@@ -1,7 +1,7 @@
-## Markdown to HTML using margrave (pure Nim)
+## Markdown to HTML using nmark (CommonMark + GFM tables)
 ## Handles title extraction, read-more markers, and rendering.
 
-import margrave
+import nmark
 import std/strutils
 import types
 
@@ -100,6 +100,7 @@ proc extractMarkdownLinks*(text: string): seq[MarkdownLink] =
         inc i
 
 proc markdown*(text: string): string =
-  ## Convert markdown source to HTML via margrave parser.
-  let elements = parseMargrave(text)
-  result = elements.join("\n")
+  ## Convert markdown source to HTML via nmark parser.
+  ## Qualified call: a bare `text.markdown` would resolve to this proc
+  ## itself (same name) and recurse infinitely.
+  result = nmark.markdown(text)
