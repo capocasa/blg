@@ -1,3 +1,5 @@
 /blg
 .blg-cache/
 output/
+src/blg.out
+tests/test_blg
