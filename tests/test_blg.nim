@@ -437,6 +437,101 @@ suite "Cache busting":
     check getFileInfo(output / "mytag.html").lastWriteTime > tagMtime
     check readOutput(output / "mytag.html").contains("Modified")
 
+suite "Autolink":
+  setup:
+    discard
+
+  teardown:
+    discard
+
+  test "bare URL becomes link with URL as text and href":
+    check markdown("See https://example.com for info") ==
+      "<p>See <a href=\"https://example.com\">https://example.com</a> for info</p>\n"
+
+  test "URL at start of line":
+    check markdown("https://example.com") ==
+      "<p><a href=\"https://example.com\">https://example.com</a></p>\n"
+
+  test "http scheme also autolinks":
+    check markdown("go http://plain.org now") ==
+      "<p>go <a href=\"http://plain.org\">http://plain.org</a> now</p>\n"
+
+  test "trailing period excluded from link":
+    check markdown("Visit https://example.com.") ==
+      "<p>Visit <a href=\"https://example.com\">https://example.com</a>.</p>\n"
+
+  test "trailing comma excluded":
+    check markdown("Visit https://example.com/x, then leave") ==
+      "<p>Visit <a href=\"https://example.com/x\">https://example.com/x</a>, then leave</p>\n"
+
+  test "unbalanced trailing paren excluded":
+    check markdown("(see https://example.com)") ==
+      "<p>(see <a href=\"https://example.com\">https://example.com</a>)</p>\n"
+
+  test "balanced parens in URL kept":
+    check markdown("wiki https://en.wikipedia.org/wiki/Foo_(bar) end") ==
+      "<p>wiki <a href=\"https://en.wikipedia.org/wiki/Foo_(bar)\">" &
+        "https://en.wikipedia.org/wiki/Foo_(bar)</a> end</p>\n"
+
+  test "inline code span untouched":
+    check markdown("`code https://example.com end`") ==
+      "<p><code>code https://example.com end</code></p>\n"
+
+  test "code after inline code autolinks":
+    check markdown("a `x` b https://example.com c") ==
+      "<p>a <code>x</code> b <a href=\"https://example.com\">https://example.com</a> c</p>\n"
+
+  test "fenced code block untouched":
+    check markdown("```\nhttps://example.com\n```") ==
+      "<pre><code>https://example.com\n</code></pre>\n"
+
+  test "tilde fenced code block untouched":
+    check markdown("~~~\nhttps://fence.com\n~~~") ==
+      "<pre><code>https://fence.com\n</code></pre>\n"
+
+  test "existing markdown link untouched":
+    check markdown("[text](https://example.com)") ==
+      "<p><a href=\"https://example.com\">text</a></p>\n"
+
+  test "existing markdown image untouched":
+    check markdown("![img](https://example.com/i.png)") ==
+      "<p><img src=\"https://example.com/i.png\" alt=\"img\" /></p>\n"
+
+  test "URL inside link text not nested":
+    check markdown("[a https://nested.com b](https://dest.com)") ==
+      "<p><a href=\"https://dest.com\">a https://nested.com b</a></p>\n"
+
+  test "word-glued scheme not linked":
+    check markdown("xhttps://glued.com") ==
+      "<p>xhttps://glued.com</p>\n"
+
+  test "html block untouched":
+    check markdown("<div>\nhttps://inside.com\n</div>") ==
+      "<div>\nhttps://inside.com\n</div>\n"
+
+  test "url in list item autolinks":
+    check markdown("- item https://bullet.com") ==
+      "<ul>\n<li>item <a href=\"https://bullet.com\">https://bullet.com</a></li>\n</ul>\n"
+
+  test "url in heading autolinks":
+    check markdown("# head https://head.com") ==
+      "<h1>head <a href=\"https://head.com\">https://head.com</a></h1>\n"
+
+  test "end-to-end bare url in post body":
+    let dir = setupTestDir()
+    let pages = dir / "pages"
+    let output = dir / "public"
+    let cache = dir / "html"
+    createDir(pages)
+
+    createPost(pages, "post1", "2026-01-01\n\n# Post\n\nSee https://example.com/page for details.\n")
+    buildSite(pages, output, cache, perPage = 20)
+
+    let html = readOutput(output / "post1.html")
+    check html.contains(">https://example.com/page</a>")
+    check html.contains("href=\"https://example.com/page\"")
+    cleanup()
+
 suite "Force rebuild":
   setup:
     let dir = setupTestDir()

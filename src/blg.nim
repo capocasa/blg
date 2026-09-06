@@ -77,6 +77,7 @@
 
 import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, options]
 import blg/[renderer, types, dynload, datetime, md]
+export md.autolinkUrls, md.markdown
 when defined(linux):
   import blg/daemon
 

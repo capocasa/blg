@@ -56,6 +56,10 @@ These CSS files only load where they apply:
 
 Open `public/hello-world.html` — notice the gradient title from `hello-world.css`. Now open `public/nim-basics.html` — it gets `post.css` (left border) and `tutorials.css` (blue heading) but not `hello-world.css`.
 
+### Autolinked URLs
+
+Open `public/nim-basics.html` and look at the Resources section. Bare URLs in markdown (`https://nim-lang.org/docs/manual.html`) become links where the URL is both the text and the href. URLs inside code spans, fenced code blocks, and existing markdown links are left alone.
+
 ### Preview truncation fix
 
 Open `public/index.html` and look at the Hello World preview. The bold text in `hello-world.md` deliberately spans across the read-more break (triple newline). The preview is cut off mid-bold, but the closing `</strong>` tag is automatically inserted so the rest of the page renders normally.
