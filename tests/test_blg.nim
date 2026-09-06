@@ -263,7 +263,7 @@ suite "menu.list behavior":
     check alphaPos < middlePos
     check middlePos < zebraPos
 
-  test "default menu has no pages, only index and tags":
+  test "default menu is index, tags, then about page":
     createPost(pages, "about", "# About")
     createPost(pages, "contact", "# Contact")
     createPost(pages, "post1", "# Post")
@@ -275,12 +275,11 @@ suite "menu.list behavior":
     let index = readOutput(output / "index.html")
     let nav = index[index.find("<nav>") .. index.find("</nav>")]
 
-    # Nav should have index and news tag only
-    check nav.contains("index.html")
     check nav.contains("news.html")
-    # about and contact are posts, not in nav
-    check not nav.contains("about.html")
+    # about is auto-added last (d9d66e2), other pages stay out
+    check nav.contains("about.html")
     check not nav.contains("contact.html")
+    check not nav.contains("post1.html")
 
 suite "Configuration cascading":
   setup:

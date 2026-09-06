@@ -143,9 +143,17 @@ proc loadMenuList(path: string, tags: seq[string], pageSlugs: HashSet[string]): 
       else:
         break
 
-    let normalized = toTagSlug(trimmed)
-    if normalized in tagSlugs:
-      currentMenu.add(MenuEntry(kind: "tag", slug: normalized, label: trimmed, indent: indent))
+    # Explicit "tag:name" entries reference a tag even when the name
+    # would also normalize like a page slug
+    var entryKind: string
+    var entryName = trimmed
+    if trimmed.startsWith("tag:") and toTagSlug(trimmed[4..^1]) in tagSlugs:
+      entryKind = "tag"
+      entryName = trimmed[4..^1]
+
+    let normalized = toTagSlug(entryName)
+    if entryKind == "tag" or normalized in tagSlugs:
+      currentMenu.add(MenuEntry(kind: "tag", slug: normalized, label: entryName, indent: indent))
     elif normalized == "home" or normalized == "index":
       # "Home" or "index" links to the homepage post listing
       currentMenu.add(MenuEntry(kind: "page", slug: "index", label: trimmed, indent: indent))
