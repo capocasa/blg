@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact: blg-linux-amd64
+            ext: tar.gz
+          - os: macos-latest
+            artifact: blg-macos-universal
+            ext: tar.gz
+          - os: windows-latest
+            artifact: blg-windows-amd64
+            ext: zip
+
+    runs-on: ${{ matrix.os }}
+
+    # git-bash on every runner: one shell for all platforms, and unlike
+    # pwsh it propagates non-zero exit codes from native exes like nimble,
+    # so a failed build/test actually fails the step.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: stable
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          parent-nim-install-directory: $HOME
+          nim-install-directory: nim-toolchain
+
+      - name: Install dependencies
+        run: |
+          nimble install -y --depsOnly
+          nimble setup -y
+          echo '--path:"src"' >> nimble.paths
+
+      - name: Compute build flags
+        run: |
+          FLAGS="-d:release -d:Version=${GITHUB_REF_NAME:-dev}"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            # auto-update on in release binaries only; source builds
+            # (nimble install) keep the default off
+            FLAGS="$FLAGS -d:autoUpdate"
+          fi
+          echo "BUILD_FLAGS=$FLAGS" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: nimble build -y ${{ env.BUILD_FLAGS }}
+
+      - name: Build x86_64 and create universal binary (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mv blg blg-arm64
+          rm -rf ~/.cache/nim/blg_r
+          nim c ${{ env.BUILD_FLAGS }} --passC:"-arch x86_64" --passL:"-arch x86_64" --cpu:amd64 -o:blg-x86_64 src/blg.nim
+          lipo -create blg-arm64 blg-x86_64 -output blg
+          file blg
+
+      - name: Run tests
+        run: nimble test
+
+      - name: Fetch CA bundle (macOS)
+        # Release macOS builds can't find a system trust store; ship
+        # cacert.pem next to the binary for the auto-updater's TLS.
+        if: runner.os == 'macOS'
+        run: curl -fsSL https://curl.se/ca/cacert.pem -o cacert.pem
+
+      - name: Fetch OpenSSL DLLs + CA bundle (Windows)
+        # Stock Windows ships no OpenSSL. Nim's std/net dlopens libssl /
+        # libcrypto by hardcoded names; without these DLLs alongside
+        # blg.exe, any TLS code path dies. Use the canonical Nim Windows
+        # DLL bundle; it also ships a cacert.pem.
+        if: runner.os == 'Windows'
+        run: |
+          curl -fsSL -o dlls.zip https://nim-lang.org/download/dlls.zip
+          unzip -o -d dlls dlls.zip
+
+      - name: Package (Unix)
+        if: matrix.ext == 'tar.gz'
+        run: |
+          mkdir -p ${{ matrix.artifact }}
+          cp blg ${{ matrix.artifact }}/
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            cp cacert.pem ${{ matrix.artifact }}/
+          fi
+          ./${{ matrix.artifact }}/blg -v > ${{ matrix.artifact }}/VERSION
+          cp README.md LICENSE ${{ matrix.artifact }}/
+          tar czf ${{ matrix.artifact }}.${{ matrix.ext }} ${{ matrix.artifact }}
+
+      - name: Package (Windows)
+        if: matrix.ext == 'zip'
+        run: |
+          mkdir -p ${{ matrix.artifact }}
+          cp blg.exe ${{ matrix.artifact }}/
+          cp dlls/libssl-1_1-x64.dll dlls/libcrypto-1_1-x64.dll dlls/cacert.pem ${{ matrix.artifact }}/
+          ./${{ matrix.artifact }}/blg.exe -v | tr -d '\r' > ${{ matrix.artifact }}/VERSION
+          cp README.md LICENSE ${{ matrix.artifact }}/
+          7z a ${{ matrix.artifact }}.${{ matrix.ext }} ./${{ matrix.artifact }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.${{ matrix.ext }}
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            blg-linux-amd64.tar.gz \
+            blg-macos-universal.tar.gz \
+            blg-windows-amd64.zip

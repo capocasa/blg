@@ -76,8 +76,11 @@
 ## - **inotify** - Daemon mode (Linux)
 
 import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, options]
-import blg/[renderer, types, dynload, datetime, md]
+import blg/[renderer, types, dynload, datetime, md, update]
 export md.autolinkUrls, md.markdown
+
+const Version* {.strdefine.} = "dev"
+
 when defined(linux):
   import blg/daemon
 
@@ -702,6 +705,7 @@ Options:
   when defined(linux):
     echo "  -d, --daemon         Watch for changes and rebuild (5s debounce)"
   echo """  -e, --env <file>     Env file (default: .env)
+  -v, --version        Show version
   -h, --help           Show this help
 
 Environment variables:
@@ -710,6 +714,8 @@ Environment variables:
   BLG_SEARCH, BLG_RSS, BLG_SITEMAP (on by default; set to "false" to disable)
   BLG_STRICT_LINKS (fail build on broken internal links; default: false)
   Date presets: iso, us-long, us-short, eu-long, eu-medium, eu-short, uk (or custom format)
+
+  BLG_AUTO_UPDATE (true/false; default: on in release binaries, off otherwise)
 
 Precedence: option > env var > .env file > default"""
   quit(0)
@@ -742,6 +748,16 @@ when isMainModule:
   loadEnvFile(envFile)
   initDateFormat()  # Must be after loadEnvFile
   siteConfig = loadSiteConfig()
+
+  # Hidden worker mode for the auto-updater; must run detached, silent,
+  # and before any site-building machinery. See src/blg/update.nim.
+  if commandLineParams().anyIt(it == "--self-update-check"):
+    selfUpdateCheck(Version)
+    quit(0)
+
+  cleanupStaleBinaries()
+  spawnBackgroundUpdateMaybe()
+  showUpdateNoticeMaybe(Version)
   if existsEnv("BLG_INPUT"): inputDir = getEnv("BLG_INPUT")
   if existsEnv("BLG_OUTPUT"): outputDir = getEnv("BLG_OUTPUT")
   if existsEnv("BLG_CACHE"): cacheDir = getEnv("BLG_CACHE")
@@ -781,6 +797,7 @@ when isMainModule:
           of "per-page": expectVal = "per-page"
           of "e", "env": expectVal = "env"
           of "h", "help": usage()
+          of "v", "version": echo Version; quit(0)
           of "f", "force": forceMode = true
           of "d", "daemon": daemonMode = true
           of "strict-links": siteConfig.strictLinks = true
@@ -793,6 +810,7 @@ when isMainModule:
           of "per-page": expectVal = "per-page"
           of "e", "env": expectVal = "env"
           of "h", "help": usage()
+          of "v", "version": echo Version; quit(0)
           of "f", "force": forceMode = true
           of "strict-links": siteConfig.strictLinks = true
           else: echo "Unknown option: ", key; quit(1)

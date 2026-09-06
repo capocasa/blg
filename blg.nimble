@@ -12,3 +12,6 @@ requires "nmark >= 0.1.10"
 
 task docs, "Generate documentation":
   exec "nim doc --project --index:on -o:docs/ src/blg.nim"
+
+task test, "Run tests":
+  exec "nim c -r tests/test_blg.nim"
