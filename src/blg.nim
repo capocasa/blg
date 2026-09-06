@@ -180,6 +180,16 @@ proc applySnippets(html: string, slug: string, tagSlugs: seq[string]): string =
     return resultHtml
   let snippetDir = snippetBaseDir
 
+  proc findOpenTag(s: string, tagName: string): int =
+    ## Find the end position (just past '>') of an opening tag like <body ...> or <div class="content">.
+    ## Returns -1 if not found.
+    let search = "<" & tagName
+    let start = s.find(search)
+    if start < 0: return -1
+    let gt = s.find('>', start + search.len)
+    if gt < 0: return -1
+    return gt + 1
+
   # Supported structural tags.
   let tags = @["body", "content"]
   for tag in tags:
@@ -187,12 +197,8 @@ proc applySnippets(html: string, slug: string, tagSlugs: seq[string]): string =
     let topPath = snippetDir / (tag & ".html")
     if fileExists(topPath):
       let snippet = readFile(topPath)
-      var openTag = "<" & tag & ">"
-      if tag == "content":
-        openTag = "<div class=\"content\">"
-      let pos = resultHtml.find(openTag)
-      if pos >= 0:
-        let insertPos = pos + openTag.len
+      let insertPos = resultHtml.findOpenTag(if tag == "content": "div class=\"content\"" else: tag)
+      if insertPos >= 0:
         resultHtml = resultHtml[0..<insertPos] & "\n" & snippet & "\n" & resultHtml[insertPos..^1]
 
     # ----- per‑slug top snippet (myslug-body.html) -----
@@ -201,12 +207,8 @@ proc applySnippets(html: string, slug: string, tagSlugs: seq[string]): string =
       if fileExists(slugTop):
         echo "Found per‑slug snippet: " & slugTop
         let snippet = readFile(slugTop)
-        var openTag = "<" & tag & ">"
-        if tag == "content":
-          openTag = "<div class=\"content\">"
-        let pos = resultHtml.find(openTag)
-        if pos >= 0:
-          let insertPos = pos + openTag.len
+        let insertPos = resultHtml.findOpenTag(if tag == "content": "div class=\"content\"" else: tag)
+        if insertPos >= 0:
           resultHtml = resultHtml[0..<insertPos] & "\n" & snippet & "\n" & resultHtml[insertPos..^1]
 
     # ----- bottom snippets (only for content container) -----
