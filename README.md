@@ -78,6 +78,7 @@ backgrounds, scoped assets, templating, config reference) lives at
 # Changelog
 
 ```
+0.3.2    Bare binaries as release assets, one-liner install, embedded CA bundle
 0.3.1    blg.conf config file replaces .env: site title/description, output extension, strict parsing
 0.2.0    Scoped assets, backgrounds, OG tags, RSS, sitemap, preview fix
 0.1.0    Initial release
