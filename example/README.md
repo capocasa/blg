@@ -66,7 +66,7 @@ Open `public/index.html` and look at the Hello World preview. The bold text in `
 
 ### OG tags and RSS
 
-Set `BLG_BASE_URL` in `.env` to enable:
+Set the `BLG_BASE_URL` environment variable to enable:
 - Open Graph meta tags on every page
 - RSS feed at `public/feed.xml`
 - Sitemap at `public/sitemap.xml`
@@ -81,6 +81,8 @@ Delete the generated files and rebuild from scratch:
     cd example/
     blg
 
+Site title and description come from `blg.conf` in this directory.
+
 Everything in `public/` except `style.css` and the scoped CSS files will be regenerated. The theme CSS is only written once on first run — edit it freely.
 
 ## Experiment
@@ -88,4 +90,4 @@ Everything in `public/` except `style.css` and the scoped CSS files will be rege
 - Add a new post: create `md/my-post.md` with a date on line 1, run `blg`
 - Add a tag: `mkdir md/mytag && ln -s ../my-post.md md/mytag/`, run `blg`
 - Add scoped CSS: create `public/mytag.css`, run `blg -f` — it loads only on that tag's pages
-- Enable absolute URLs: uncomment `BLG_BASE_URL` in `.env`, run `blg -f`
+- Enable absolute URLs: `BLG_BASE_URL=https://mysite.net/ blg -f`

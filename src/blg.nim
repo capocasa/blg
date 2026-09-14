@@ -14,7 +14,7 @@
 ##
 ## - **Symlinks as tags** - No database, no YAML frontmatter, just `ln -s`
 ## - **Directories as structure** - Tag subdirectories, menu.list for ordering
-## - **Environment for config** - `.env` files, env vars, CLI flags (in that precedence)
+## - **Config file, env vars, flags** - `blg.conf`, environment, CLI flags (in that precedence)
 ##
 ## Files are content, directories are organization.
 ##
@@ -33,6 +33,7 @@
 ##
 ## - `blg <blg.html>`_ - CLI entry, site builder, menu logic
 ## - `blg/types <blg/types.html>`_ - Core data types: SourceFile, MenuItem, TagInfo
+## - `blg/conf <blg/conf.html>`_ - blg.conf loading: site title/description, file extension
 ## - `blg/md <blg/md.html>`_ - Markdown parsing via margrave
 ## - `blg/renderer <blg/renderer.html>`_ - HTML generation, caching, link processing
 ## - `blg/datetime <blg/datetime.html>`_ - Date formatting with presets
@@ -76,7 +77,7 @@
 ## - **inotify** - Daemon mode (Linux)
 
 import std/[os, times, tables, strutils, sequtils, sets, algorithm, parseopt, envvars, options]
-import blg/[renderer, types, dynload, datetime, md, update]
+import blg/[renderer, types, dynload, datetime, md, update, conf]
 export md.autolinkUrls, md.markdown
 
 const Version* {.strdefine.} = "dev"
@@ -90,8 +91,8 @@ const searchJs = staticRead("../assets/search.js")
   ## Embedded search client with inlined MiniSearch.
 
 var templateLib: TemplateLib   ## Loaded custom template library (if any)
-var ext: string = "html"       ## Output file extension from BLG_EXT
-var siteConfig: SiteConfig     ## Site-wide config from environment
+var ext: string = "html"       ## Output file extension from blg.conf [files] extension
+var siteConfig: SiteConfig     ## Site-wide config from blg.conf and env
 var snippetBaseDir: string = "" ## Directory containing HTML snippets (sibling of md dir)
 
 proc suffix(): string =
@@ -674,21 +675,6 @@ proc validateDirAccess(dir, name: string) =
       echo "Error: ", name, " directory '", dir, "' is not writable"
       quit(1)
 
-proc loadEnvFile(path: string) =
-  ## Parse .env file, set vars that aren't already in environment.
-  if not fileExists(path):
-    return
-  for line in lines(path):
-    let trimmed = line.strip()
-    if trimmed.len == 0 or trimmed.startsWith("#"):
-      continue
-    let eq = trimmed.find('=')
-    if eq > 0:
-      let key = trimmed[0..<eq].strip()
-      let val = trimmed[eq+1..^1].strip()
-      if not existsEnv(key):  # don't override existing env
-        putEnv(key, val)
-
 proc usage() =
   ## Print help and exit.
   echo """blg - Blog Generator
@@ -704,20 +690,28 @@ Options:
   --strict-links       Fail build on broken internal links"""
   when defined(linux):
     echo "  -d, --daemon         Watch for changes and rebuild (5s debounce)"
-  echo """  -e, --env <file>     Env file (default: .env)
+  echo """  -C, --conf <file>    Config file (default: blg.conf)
   -v, --version        Show version
   -h, --help           Show this help
 
+Config file (blg.conf, INI format):
+  [site]
+  title = My Blog
+  description = A blog about code
+  [files]
+  extension = html      (default; set to "" for extensionless URLs)
+  Unknown or duplicate sections/keys and invalid values are errors.
+
 Environment variables:
-  BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_EXT, BLG_DATE_FORMAT
-  BLG_BASE_URL (prepend to relative URLs), BLG_SITE_TITLE, BLG_SITE_DESCRIPTION
+  BLG_INPUT, BLG_OUTPUT, BLG_CACHE, BLG_PER_PAGE, BLG_DATE_FORMAT
+  BLG_BASE_URL (prepend to relative URLs)
   BLG_SEARCH, BLG_RSS, BLG_SITEMAP (on by default; set to "false" to disable)
   BLG_STRICT_LINKS (fail build on broken internal links; default: false)
   Date presets: iso, us-long, us-short, eu-long, eu-medium, eu-short, uk (or custom format)
 
   BLG_AUTO_UPDATE (true/false; default: on in release binaries, off otherwise)
 
-Precedence: option > env var > .env file > default"""
+Precedence: option > env var > config file > default"""
   quit(0)
 
 when isMainModule:
@@ -726,28 +720,31 @@ when isMainModule:
     outputDir = "public"
     cacheDir = "cache"
     perPage = 20
-    envFile = ".env"
+    confFile = "blg.conf"
     expectVal = ""
     forceMode = false
   when defined(linux):
     var daemonMode = false
 
-  # First pass: find env file option
+  # First pass: find config file option
   for kind, key, val in getopt():
-    if expectVal == "env":
-      envFile = key
+    if expectVal == "conf":
+      confFile = key
       expectVal = ""
       continue
     if kind in {cmdShortOption, cmdLongOption}:
-      if val != "" and key in ["e", "env"]:
-        envFile = val
-      elif val == "" and key in ["e", "env"]:
-        expectVal = "env"
+      if val != "" and key in ["C", "conf"]:
+        confFile = val
+      elif val == "" and key in ["C", "conf"]:
+        expectVal = "conf"
 
-  # Load .env file, then read env vars
-  loadEnvFile(envFile)
-  initDateFormat()  # Must be after loadEnvFile
+  # Load config file
+  let cfg = loadConf(confFile)
+  ext = cfg.fileExt
+  initDateFormat()
   siteConfig = loadSiteConfig()
+  siteConfig.siteTitle = cfg.siteTitle
+  siteConfig.siteDescription = cfg.siteDescription
 
   # Hidden worker mode for the auto-updater; must run detached, silent,
   # and before any site-building machinery. See src/blg/update.nim.
@@ -762,7 +759,6 @@ when isMainModule:
   if existsEnv("BLG_OUTPUT"): outputDir = getEnv("BLG_OUTPUT")
   if existsEnv("BLG_CACHE"): cacheDir = getEnv("BLG_CACHE")
   if existsEnv("BLG_PER_PAGE"): perPage = parseInt(getEnv("BLG_PER_PAGE"))
-  if existsEnv("BLG_EXT"): ext = getEnv("BLG_EXT")
 
   # Second pass: CLI args override env
   expectVal = ""
@@ -773,7 +769,7 @@ when isMainModule:
       of "i": inputDir = key
       of "c": cacheDir = key
       of "per-page": perPage = parseInt(key)
-      of "env": discard  # already handled
+      of "conf": discard  # already handled
       else: discard
       expectVal = ""
       continue
@@ -786,7 +782,7 @@ when isMainModule:
         of "i", "input": inputDir = val
         of "c", "cache": cacheDir = val
         of "per-page": perPage = parseInt(val)
-        of "e", "env": discard  # already handled
+        of "C", "conf": discard  # already handled
         else: echo "Unknown option: ", key; quit(1)
       else:
         when defined(linux):
@@ -795,7 +791,7 @@ when isMainModule:
           of "i", "input": expectVal = "i"
           of "c", "cache": expectVal = "c"
           of "per-page": expectVal = "per-page"
-          of "e", "env": expectVal = "env"
+          of "C", "conf": expectVal = "conf"
           of "h", "help": usage()
           of "v", "version": echo Version; quit(0)
           of "f", "force": forceMode = true
@@ -808,7 +804,7 @@ when isMainModule:
           of "i", "input": expectVal = "i"
           of "c", "cache": expectVal = "c"
           of "per-page": expectVal = "per-page"
-          of "e", "env": expectVal = "env"
+          of "C", "conf": expectVal = "conf"
           of "h", "help": usage()
           of "v", "version": echo Version; quit(0)
           of "f", "force": forceMode = true

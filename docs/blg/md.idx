@@ -1,4 +1,6 @@
 nimTitle	md	blg/md.html	module blg/md		0
-nim	extractMarkdownTitle	blg/md.html#extractMarkdownTitle,string	proc extractMarkdownTitle(text: string): string		7
-nim	insertReadMoreMarker	blg/md.html#insertReadMoreMarker,string	proc insertReadMoreMarker(text: string): string		15
-nim	markdown	blg/md.html#markdown,string	proc markdown(text: string): string		44
+nim	extractMarkdownTitle	blg/md.html#extractMarkdownTitle,string	proc extractMarkdownTitle(text: string): string		8
+nim	insertReadMoreMarker	blg/md.html#insertReadMoreMarker,string	proc insertReadMoreMarker(text: string): string		16
+nim	extractMarkdownLinks	blg/md.html#extractMarkdownLinks,string	proc extractMarkdownLinks(text: string): seq[MarkdownLink]		45
+nim	autolinkUrls	blg/md.html#autolinkUrls,string	proc autolinkUrls(text: string): string		102
+nim	markdown	blg/md.html#markdown,string	proc markdown(text: string): string		258

@@ -1,0 +1,9 @@
+nimTitle	update	blg/update.html	module blg/update		0
+nim	autoUpdateEnabled	blg/update.html#autoUpdateEnabled	proc autoUpdateEnabled(): bool		44
+nim	parseSemver	blg/update.html#parseSemver,string	proc parseSemver(s: string): seq[int]		66
+nim	semverGt	blg/update.html#semverGt,string,string	proc semverGt(a, b: string): bool		74
+nim	swapInstall	blg/update.html#swapInstall,string,string	proc swapInstall(srcDir, destBin: string): bool		142
+nim	cleanupStaleBinaries	blg/update.html#cleanupStaleBinaries	proc cleanupStaleBinaries()		180
+nim	selfUpdateCheck	blg/update.html#selfUpdateCheck,string,string	proc selfUpdateCheck(curVersion: string; targetPath = ""; force = false)		188
+nim	spawnBackgroundUpdateMaybe	blg/update.html#spawnBackgroundUpdateMaybe	proc spawnBackgroundUpdateMaybe()		214
+nim	showUpdateNoticeMaybe	blg/update.html#showUpdateNoticeMaybe,string	proc showUpdateNoticeMaybe(version: string)		258

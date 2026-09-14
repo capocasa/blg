@@ -16,19 +16,38 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4QQQEwksSS9ZWwAAAk1JREFUWMPtll2ITVEUx39nn/O7Y5qR8f05wtCUUr6ZIS++8pEnkZInPImneaCQ5METNdOkeFBKUhMPRIkHKfEuUZSUlGlKPN2TrgfncpvmnntnmlEyq1Z7t89/rf9a6+y99oZxGZf/XeIq61EdtgKXgdXA0xrYAvBjOIF1AI9zvjcC74BSpndrJPkBWDScTF8Aa4E3wDlgHbASaANmVqlcCnwHvgDvgVfAJ+AikAAvgfVZwLnSVZHZaOuKoQi3ZOMi4NkYkpe1p4J7A8BpYAD49hfIy/oqG0+hLomiKP2L5L+1ubn5115S+3OAn4EnwBlgMzCjyt6ZAnQCJ4A7wOs88iRJHvw50HoujuPBoCKwHWiosy8MdfZnAdcHk8dxXFJ3VQbQlCTJvRBCGdRbD4M6uc5glpY3eAihpN5S5w12diSEcCCEcKUO4ljdr15T76ur1FDDLIQQ3qv71EdDOe3Kxj3leRXyk+pxdWnFWod6Wt2bY3de3aSuUHcPBVimHs7mK9WrmeOF6lR1o9qnzskh2ar2qm1qizpfXaPeVGdlmGN5pb09qMxz1Xb1kLqgzn1RyH7JUXW52lr5e/Kqi9qpto7V1atuUzfnARrV7jEib1T76gG2qxdGmXyiekkt1GswPTtek0aBfJp6YySGBfWg2tPQ0FAYgf1stUfdmdcjarbYJEniKIq6gY/Aw+zWHAC+p2labGpqiorFYgGYCEzN7oQdQClN07O1/EfDyGgC0ALMBdYAi4FyK+4H3gLPsxfR1zRNi+NP7nH5J+QntnXe5B5mpfQAAAAASUVORK5CYII=">
 
 <!-- CSS -->
-<link rel="stylesheet" type="text/css" href="nimdoc.out.css?v=2.2.8">
+<link rel="stylesheet" type="text/css" href="nimdoc.out.css?v=2.2.12">
 
 <!-- JS -->
-<script type="text/javascript" src="dochack.js?v=2.2.8"></script>
+<script type="text/javascript" src="dochack.js?v=2.2.12"></script>
 </head>
 <body>
   <div class="document" id="documentId">
+    <input type="checkbox" id="nav-toggle" hidden>
+    <label for="nav-toggle" id="nav-burger">&#9776;</label>
+    <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">Index</h1>
-      Modules: <a href="blg.html">blg</a>, <a href="blg/daemon.html">blg/daemon</a>, <a href="blg/datetime.html">blg/datetime</a>, <a href="blg/dynload.html">blg/dynload</a>, <a href="blg/md.html">blg/md</a>, <a href="blg/renderer.html">blg/renderer</a>, <a href="blg/types.html">blg/types</a>.<br/><p /><h2>API symbols</h2>
-<dl><dt><a name="buildSite" href="#buildSite"><span>buildSite:</span></a></dt><dd><ul class="simple">
+      Modules: <a href="blg.html">blg</a>, <a href="blg/conf.html">blg/conf</a>, <a href="blg/daemon.html">blg/daemon</a>, <a href="blg/datetime.html">blg/datetime</a>, <a href="blg/dynload.html">blg/dynload</a>, <a href="blg/md.html">blg/md</a>, <a href="blg/renderer.html">blg/renderer</a>, <a href="blg/types.html">blg/types</a>, <a href="blg/update.html">blg/update</a>.<br/><p /><h2>API symbols</h2>
+<dl><dt><a name="autolinkUrls" href="#autolinkUrls"><span>autolinkUrls:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="md: proc autolinkUrls(text: string): string" href="blg/md.html#autolinkUrls%2Cstring">md: proc autolinkUrls(text: string): string</a></li>
+          </ul></dd>
+<dt><a name="autoUpdateEnabled" href="#autoUpdateEnabled"><span>autoUpdateEnabled:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc autoUpdateEnabled(): bool" href="blg/update.html#autoUpdateEnabled">update: proc autoUpdateEnabled(): bool</a></li>
+          </ul></dd>
+<dt><a name="buildSite" href="#buildSite"><span>buildSite:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="blg: proc buildSite(contentDir, outputDir, cacheDir: string; perPage: int; force = false)" href="blg.html#buildSite%2Cstring%2Cstring%2Cstring%2Cint">blg: proc buildSite(contentDir, outputDir, cacheDir: string; perPage: int; force = false)</a></li>
+          </ul></dd>
+<dt><a name="cleanupStaleBinaries" href="#cleanupStaleBinaries"><span>cleanupStaleBinaries:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc cleanupStaleBinaries()" href="blg/update.html#cleanupStaleBinaries">update: proc cleanupStaleBinaries()</a></li>
+          </ul></dd>
+<dt><a name="Conf" href="#Conf"><span>Conf:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="conf: object Conf" href="blg/conf.html#Conf">conf: object Conf</a></li>
           </ul></dd>
 <dt><a name="dateFormat" href="#dateFormat"><span>dateFormat:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -38,9 +57,17 @@
 <li><a class="reference external"
           data-doc-search-tag="datetime: const DatePresets" href="blg/datetime.html#DatePresets">datetime: const DatePresets</a></li>
           </ul></dd>
+<dt><a name="extractFirstImage" href="#extractFirstImage"><span>extractFirstImage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc extractFirstImage(html: string): string" href="blg/renderer.html#extractFirstImage%2Cstring">renderer: proc extractFirstImage(html: string): string</a></li>
+          </ul></dd>
 <dt><a name="extractIsoDate" href="#extractIsoDate"><span>extractIsoDate:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="renderer: proc extractIsoDate(content: string): Option[(Time, bool)]" href="blg/renderer.html#extractIsoDate%2Cstring">renderer: proc extractIsoDate(content: string): Option[(Time, bool)]</a></li>
+          </ul></dd>
+<dt><a name="extractMarkdownLinks" href="#extractMarkdownLinks"><span>extractMarkdownLinks:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="md: proc extractMarkdownLinks(text: string): seq[MarkdownLink]" href="blg/md.html#extractMarkdownLinks%2Cstring">md: proc extractMarkdownLinks(text: string): seq[MarkdownLink]</a></li>
           </ul></dd>
 <dt><a name="extractMarkdownTitle" href="#extractMarkdownTitle"><span>extractMarkdownTitle:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -63,6 +90,28 @@
           data-doc-search-tag="renderer: proc generatePageLinks(listSlug: string; current, total: int; urlSuffix = &quot;.html&quot;): seq[
     PageLink]" href="blg/renderer.html#generatePageLinks%2Cstring%2Cint%2Cint%2Cstring">renderer: proc generatePageLinks(listSlug: string; current, total: int; urlSuffix = &quot;.html&quot;): seq[
     PageLink]</a></li>
+          </ul></dd>
+<dt><a name="generateRssFeed" href="#generateRssFeed"><span>generateRssFeed:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc generateRssFeed(posts: seq[SourceFile]; config: SiteConfig; urlSuffix: string): string" href="blg/renderer.html#generateRssFeed%2Cseq%5BSourceFile%5D%2CSiteConfig%2Cstring">renderer: proc generateRssFeed(posts: seq[SourceFile]; config: SiteConfig; urlSuffix: string): string</a></li>
+          </ul></dd>
+<dt><a name="generateSearchIndex" href="#generateSearchIndex"><span>generateSearchIndex:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc generateSearchIndex(posts: seq[SourceFile]; config: SiteConfig;
+                    urlSuffix: string): string" href="blg/renderer.html#generateSearchIndex%2Cseq%5BSourceFile%5D%2CSiteConfig%2Cstring">renderer: proc generateSearchIndex(posts: seq[SourceFile]; config: SiteConfig;
+                    urlSuffix: string): string</a></li>
+          </ul></dd>
+<dt><a name="generateSearchPage" href="#generateSearchPage"><span>generateSearchPage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc generateSearchPage(menus: seq[seq[MenuItem]]; config: SiteConfig;
+                   urlSuffix: string): string" href="blg/renderer.html#generateSearchPage%2Cseq%5Bseq%5BMenuItem%5D%5D%2CSiteConfig%2Cstring">renderer: proc generateSearchPage(menus: seq[seq[MenuItem]]; config: SiteConfig;
+                   urlSuffix: string): string</a></li>
+          </ul></dd>
+<dt><a name="generateSitemap" href="#generateSitemap"><span>generateSitemap:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc generateSitemap(sources: seq[SourceFile]; tagSlugs: seq[string];
+                config: SiteConfig; urlSuffix: string): string" href="blg/renderer.html#generateSitemap%2Cseq%5BSourceFile%5D%2Cseq%5Bstring%5D%2CSiteConfig%2Cstring">renderer: proc generateSitemap(sources: seq[SourceFile]; tagSlugs: seq[string];
+                config: SiteConfig; urlSuffix: string): string</a></li>
           </ul></dd>
 <dt><a name="helperLib" href="#helperLib"><span>helperLib:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -94,6 +143,10 @@
              page, totalPages: int; urlSuffix = &quot;.html&quot;; config: SiteConfig): string" href="blg/renderer.html#listTemplate%2Cstring%2Cseq%5BPostPreview%5D%2Cseq%5Bseq%5BMenuItem%5D%5D%2Cint%2Cint%2Cstring%2CSiteConfig">renderer: proc listTemplate(title: string; posts: seq[PostPreview]; menus: seq[seq[MenuItem]];
              page, totalPages: int; urlSuffix = &quot;.html&quot;; config: SiteConfig): string</a></li>
           </ul></dd>
+<dt><a name="loadConf" href="#loadConf"><span>loadConf:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="conf: proc loadConf(path: string): Conf" href="blg/conf.html#loadConf%2Cstring">conf: proc loadConf(path: string): Conf</a></li>
+          </ul></dd>
 <dt><a name="loadSiteConfig" href="#loadSiteConfig"><span>loadSiteConfig:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="types: proc loadSiteConfig(): SiteConfig" href="blg/types.html#loadSiteConfig">types: proc loadSiteConfig(): SiteConfig</a></li>
@@ -105,6 +158,10 @@
 <dt><a name="markdown" href="#markdown"><span>markdown:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="md: proc markdown(text: string): string" href="blg/md.html#markdown%2Cstring">md: proc markdown(text: string): string</a></li>
+          </ul></dd>
+<dt><a name="MarkdownLink" href="#MarkdownLink"><span>MarkdownLink:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="types: object MarkdownLink" href="blg/types.html#MarkdownLink">types: object MarkdownLink</a></li>
           </ul></dd>
 <dt><a name="MenuItem" href="#MenuItem"><span>MenuItem:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -120,6 +177,10 @@
              menus: seq[seq[MenuItem]]; config: SiteConfig): string" href="blg/renderer.html#pageTemplate%2Cstring%2Cstring%2CTime%2CTime%2Cseq%5Bseq%5BMenuItem%5D%5D%2CSiteConfig">renderer: proc pageTemplate(title, content: string; date, modified: Time;
              menus: seq[seq[MenuItem]]; config: SiteConfig): string</a></li>
           </ul></dd>
+<dt><a name="parseSemver" href="#parseSemver"><span>parseSemver:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc parseSemver(s: string): seq[int]" href="blg/update.html#parseSemver%2Cstring">update: proc parseSemver(s: string): seq[int]</a></li>
+          </ul></dd>
 <dt><a name="PostPreview" href="#PostPreview"><span>PostPreview:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="types: object PostPreview" href="blg/types.html#PostPreview">types: object PostPreview</a></li>
@@ -133,6 +194,12 @@
 <dt><a name="processLinks" href="#processLinks"><span>processLinks:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="renderer: proc processLinks(html: string; config: SiteConfig): string" href="blg/renderer.html#processLinks%2Cstring%2CSiteConfig">renderer: proc processLinks(html: string; config: SiteConfig): string</a></li>
+          </ul></dd>
+<dt><a name="renderBackground" href="#renderBackground"><span>renderBackground:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc renderBackground(bg: tuple[image, video: string]): tuple[
+    bodyStyle, bodyInsert: string]" href="blg/renderer.html#renderBackground%2Ctuple%5Bstring%2Cstring%5D">renderer: proc renderBackground(bg: tuple[image, video: string]): tuple[
+    bodyStyle, bodyInsert: string]</a></li>
           </ul></dd>
 <dt><a name="RenderFooterProc" href="#RenderFooterProc"><span>RenderFooterProc:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -178,6 +245,12 @@
 <li><a class="reference external"
           data-doc-search-tag="dynload: type RenderPostProc" href="blg/dynload.html#RenderPostProc">dynload: type RenderPostProc</a></li>
           </ul></dd>
+<dt><a name="renderScopedAssets" href="#renderScopedAssets"><span>renderScopedAssets:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc renderScopedAssets(slug: string; tags: seq[TagInfo]; pageType: string;
+                   outputDir: string): string" href="blg/renderer.html#renderScopedAssets%2Cstring%2Cseq%5BTagInfo%5D%2Cstring%2Cstring">renderer: proc renderScopedAssets(slug: string; tags: seq[TagInfo]; pageType: string;
+                   outputDir: string): string</a></li>
+          </ul></dd>
 <dt><a name="RenderSiteHeaderProc" href="#RenderSiteHeaderProc"><span>RenderSiteHeaderProc:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="dynload: type RenderSiteHeaderProc" href="blg/dynload.html#RenderSiteHeaderProc">dynload: type RenderSiteHeaderProc</a></li>
@@ -185,6 +258,42 @@
 <dt><a name="RenderTopNavProc" href="#RenderTopNavProc"><span>RenderTopNavProc:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="dynload: type RenderTopNavProc" href="blg/dynload.html#RenderTopNavProc">dynload: type RenderTopNavProc</a></li>
+          </ul></dd>
+<dt><a name="resolveBackground" href="#resolveBackground"><span>resolveBackground:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc resolveBackground(slug: string; tags: seq[TagInfo]; pageType: string;
+                  outputDir: string; config: SiteConfig): tuple[
+    image, video: string]" href="blg/renderer.html#resolveBackground%2Cstring%2Cseq%5BTagInfo%5D%2Cstring%2Cstring%2CSiteConfig">renderer: proc resolveBackground(slug: string; tags: seq[TagInfo]; pageType: string;
+                  outputDir: string; config: SiteConfig): tuple[
+    image, video: string]</a></li>
+          </ul></dd>
+<dt><a name="resolveOgImage" href="#resolveOgImage"><span>resolveOgImage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: proc resolveOgImage(content: string; config: SiteConfig): string" href="blg/renderer.html#resolveOgImage%2Cstring%2CSiteConfig">renderer: proc resolveOgImage(content: string; config: SiteConfig): string</a></li>
+          </ul></dd>
+<dt><a name="rssEnabled" href="#rssEnabled"><span>rssEnabled:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: var rssEnabled" href="blg/renderer.html#rssEnabled">renderer: var rssEnabled</a></li>
+          </ul></dd>
+<dt><a name="searchEnabled" href="#searchEnabled"><span>searchEnabled:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: var searchEnabled" href="blg/renderer.html#searchEnabled">renderer: var searchEnabled</a></li>
+          </ul></dd>
+<dt><a name="searchUrlSuffix" href="#searchUrlSuffix"><span>searchUrlSuffix:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="renderer: var searchUrlSuffix" href="blg/renderer.html#searchUrlSuffix">renderer: var searchUrlSuffix</a></li>
+          </ul></dd>
+<dt><a name="selfUpdateCheck" href="#selfUpdateCheck"><span>selfUpdateCheck:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc selfUpdateCheck(curVersion: string; targetPath = &quot;&quot;; force = false)" href="blg/update.html#selfUpdateCheck%2Cstring%2Cstring">update: proc selfUpdateCheck(curVersion: string; targetPath = &quot;&quot;; force = false)</a></li>
+          </ul></dd>
+<dt><a name="semverGt" href="#semverGt"><span>semverGt:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc semverGt(a, b: string): bool" href="blg/update.html#semverGt%2Cstring%2Cstring">update: proc semverGt(a, b: string): bool</a></li>
+          </ul></dd>
+<dt><a name="showUpdateNoticeMaybe" href="#showUpdateNoticeMaybe"><span>showUpdateNoticeMaybe:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc showUpdateNoticeMaybe(version: string)" href="blg/update.html#showUpdateNoticeMaybe%2Cstring">update: proc showUpdateNoticeMaybe(version: string)</a></li>
           </ul></dd>
 <dt><a name="SiteConfig" href="#SiteConfig"><span>SiteConfig:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -194,9 +303,17 @@
 <li><a class="reference external"
           data-doc-search-tag="types: object SourceFile" href="blg/types.html#SourceFile">types: object SourceFile</a></li>
           </ul></dd>
+<dt><a name="spawnBackgroundUpdateMaybe" href="#spawnBackgroundUpdateMaybe"><span>spawnBackgroundUpdateMaybe:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc spawnBackgroundUpdateMaybe()" href="blg/update.html#spawnBackgroundUpdateMaybe">update: proc spawnBackgroundUpdateMaybe()</a></li>
+          </ul></dd>
 <dt><a name="stripDateLine" href="#stripDateLine"><span>stripDateLine:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="renderer: proc stripDateLine(content: string): string" href="blg/renderer.html#stripDateLine%2Cstring">renderer: proc stripDateLine(content: string): string</a></li>
+          </ul></dd>
+<dt><a name="swapInstall" href="#swapInstall"><span>swapInstall:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="update: proc swapInstall(srcDir, destBin: string): bool" href="blg/update.html#swapInstall%2Cstring%2Cstring">update: proc swapInstall(srcDir, destBin: string): bool</a></li>
           </ul></dd>
 <dt><a name="TagInfo" href="#TagInfo"><span>TagInfo:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -218,6 +335,10 @@
 <li><a class="reference external"
           data-doc-search-tag="dynload: proc unloadTemplateLib(tl: var TemplateLib)" href="blg/dynload.html#unloadTemplateLib%2CTemplateLib">dynload: proc unloadTemplateLib(tl: var TemplateLib)</a></li>
           </ul></dd>
+<dt><a name="Version" href="#Version"><span>Version:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="blg: const Version" href="blg.html#Version">blg: const Version</a></li>
+          </ul></dd>
 <dt><a name="watchAndRebuild" href="#watchAndRebuild"><span>watchAndRebuild:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="daemon: proc watchAndRebuild(inputDir: string; rebuild: proc ())" href="blg/daemon.html#watchAndRebuild%2Cstring%2Cproc%29">daemon: proc watchAndRebuild(inputDir: string; rebuild: proc ())</a></li>
@@ -226,7 +347,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-02-27 13:16:03 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-14 12:34:59 UTC</small>
       </div>
     </div>
   </div>

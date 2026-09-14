@@ -16,13 +16,16 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4QQQEwksSS9ZWwAAAk1JREFUWMPtll2ITVEUx39nn/O7Y5qR8f05wtCUUr6ZIS++8pEnkZInPImneaCQ5METNdOkeFBKUhMPRIkHKfEuUZSUlGlKPN2TrgfncpvmnntnmlEyq1Z7t89/rf9a6+y99oZxGZf/XeIq61EdtgKXgdXA0xrYAvBjOIF1AI9zvjcC74BSpndrJPkBWDScTF8Aa4E3wDlgHbASaANmVqlcCnwHvgDvgVfAJ+AikAAvgfVZwLnSVZHZaOuKoQi3ZOMi4NkYkpe1p4J7A8BpYAD49hfIy/oqG0+hLomiKP2L5L+1ubn5115S+3OAn4EnwBlgMzCjyt6ZAnQCJ4A7wOs88iRJHvw50HoujuPBoCKwHWiosy8MdfZnAdcHk8dxXFJ3VQbQlCTJvRBCGdRbD4M6uc5glpY3eAihpN5S5w12diSEcCCEcKUO4ljdr15T76ur1FDDLIQQ3qv71EdDOe3Kxj3leRXyk+pxdWnFWod6Wt2bY3de3aSuUHcPBVimHs7mK9WrmeOF6lR1o9qnzskh2ar2qm1qizpfXaPeVGdlmGN5pb09qMxz1Xb1kLqgzn1RyH7JUXW52lr5e/Kqi9qpto7V1atuUzfnARrV7jEib1T76gG2qxdGmXyiekkt1GswPTtek0aBfJp6YySGBfWg2tPQ0FAYgf1stUfdmdcjarbYJEniKIq6gY/Aw+zWHAC+p2labGpqiorFYgGYCEzN7oQdQClN07O1/EfDyGgC0ALMBdYAi4FyK+4H3gLPsxfR1zRNi+NP7nH5J+QntnXe5B5mpfQAAAAASUVORK5CYII=">
 
 <!-- CSS -->
-<link rel="stylesheet" type="text/css" href="../nimdoc.out.css?v=2.2.8">
+<link rel="stylesheet" type="text/css" href="../nimdoc.out.css?v=2.2.12">
 
 <!-- JS -->
-<script type="text/javascript" src="../dochack.js?v=2.2.8"></script>
+<script type="text/javascript" src="../dochack.js?v=2.2.12"></script>
 </head>
 <body>
   <div class="document" id="documentId">
+    <input type="checkbox" id="nav-toggle" hidden>
+    <label for="nav-toggle" id="nav-burger">&#9776;</label>
+    <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">blg/types</h1>
       <div class="row">
@@ -55,7 +58,10 @@
   <details open>
     <summary><a class="reference reference-toplevel" href="#7" id="57">Types</a></summary>
     <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#MenuItem" title="MenuItem = object
+      <li><a class="reference" href="#MarkdownLink" title="MarkdownLink = object
+  url*: string               ## Link target
+  line*: int                 ## Source line number (1-indexed)">MarkdownLink</a></li>
+<li><a class="reference" href="#MenuItem" title="MenuItem = object
   url*: string               ## Link target, empty for text-only items
   label*: string             ## Display text
   active*: bool              ## True if this is the current page
@@ -75,7 +81,18 @@
 <li><a class="reference" href="#SiteConfig" title="SiteConfig = object
   baseUrl*: string           ## Prepended to relative URLs for absolute links
   siteTitle*: string         ## Site name shown in header and &lt;title&gt;
-  siteDescription*: string   ## Meta description for SEO">SiteConfig</a></li>
+  siteDescription*: string   ## Meta description for SEO
+  favicon*: string           ## Favicon filename discovered in public/
+  cssFiles*: seq[string]     ## CSS files discovered in public/
+  jsFiles*: seq[string]      ## JS files discovered in public/
+  ogImage*: string           ## OG image filename discovered in public/
+  appleTouchIcon*: string    ## Apple touch icon discovered in public/
+  backgroundImage*: string   ## Site-wide background image (background.jpg/png/webp)
+  backgroundVideo*: string   ## Site-wide background video (background.mp4/webm)
+  enableSearch*: bool        ## Generate search page and index (default: true)
+  enableRss*: bool           ## Generate RSS feed (default: true)
+  enableSitemap*: bool       ## Generate sitemap.xml (default: true)
+  strictLinks*: bool         ## Fail build on broken internal links (default: false)">SiteConfig</a></li>
 <li><a class="reference" href="#SourceFile" title="SourceFile = object
   path*: string              ## Absolute filesystem path
   slug*: string              ## Filename without extension, used for URLs
@@ -84,7 +101,8 @@
   createdAtHasTime*: bool    ## True if source included HH:MM
   modifiedAt*: Time          ## File modification time
   content*: string           ## Rendered HTML content
-  tags*: seq[TagInfo]        ## Tags this post belongs to">SourceFile</a></li>
+  tags*: seq[TagInfo]        ## Tags this post belongs to
+  links*: seq[MarkdownLink]  ## Internal links found in source">SourceFile</a></li>
 <li><a class="reference" href="#TagInfo" title="TagInfo = object
   slug*: string              ## Lowercase hyphenated form for URLs
   label*: string             ## Title case for display">TagInfo</a></li>
@@ -124,12 +142,22 @@
     <div class="section" id="7">
   <h1><a class="toc-backref" href="#7">Types</a></h1>
   <dl class="item">
-    <div id="MenuItem">
-  <dt><pre><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+    <div id="MarkdownLink">
+  <dt><pre><a href="#MarkdownLink"><span class="Identifier">MarkdownLink</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>               <span class="Comment">## Link target</span>
+  <span class="Identifier">line</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>                 <span class="Comment">## Source line number (1-indexed)</span></pre></dt>
+  <dd>
+    
+    A link extracted from markdown source.
+    
+  </dd>
+</div>
+<div id="MenuItem">
+  <dt><pre><a href="#MenuItem"><span class="Identifier">MenuItem</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>               <span class="Comment">## Link target, empty for text-only items</span>
   <span class="Identifier">label</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>             <span class="Comment">## Display text</span>
   <span class="Identifier">active</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>              <span class="Comment">## True if this is the current page</span>
-  <span class="Identifier">children</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span>   <span class="Comment">## Nested submenu items</span></pre></dt>
+  <span class="Identifier">children</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span>   <span class="Comment">## Nested submenu items</span></pre></dt>
   <dd>
     
     Navigation entry for menus.
@@ -137,7 +165,7 @@
   </dd>
 </div>
 <div id="PageLink">
-  <dt><pre><a href="types.html#PageLink"><span class="Identifier">PageLink</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <dt><pre><a href="#PageLink"><span class="Identifier">PageLink</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">page</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>                 <span class="Comment">## Page number (1-indexed)</span>
   <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>               <span class="Comment">## Link to page</span>
   <span class="Identifier">current</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>             <span class="Comment">## True if this is the active page</span>
@@ -149,13 +177,13 @@
   </dd>
 </div>
 <div id="PostPreview">
-  <dt><pre><a href="types.html#PostPreview"><span class="Identifier">PostPreview</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <dt><pre><a href="#PostPreview"><span class="Identifier">PostPreview</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">slug</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>              <span class="Comment">## Post identifier</span>
   <span class="Identifier">preview</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>           <span class="Comment">## HTML up to read-more marker</span>
   <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>               <span class="Comment">## Link to full post</span>
   <span class="Identifier">date</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">Time</span>                <span class="Comment">## Post date</span>
   <span class="Identifier">dateHasTime</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>         <span class="Comment">## True if source included time</span>
-  <span class="Identifier">tags</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#TagInfo"><span class="Identifier">TagInfo</span></a><span class="Other">]</span>        <span class="Comment">## Associated tags</span></pre></dt>
+  <span class="Identifier">tags</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#TagInfo"><span class="Identifier">TagInfo</span></a><span class="Other">]</span>        <span class="Comment">## Associated tags</span></pre></dt>
   <dd>
     
     Truncated post content for list pages.
@@ -163,18 +191,29 @@
   </dd>
 </div>
 <div id="SiteConfig">
-  <dt><pre><a href="types.html#SiteConfig"><span class="Identifier">SiteConfig</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <dt><pre><a href="#SiteConfig"><span class="Identifier">SiteConfig</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">baseUrl</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>           <span class="Comment">## Prepended to relative URLs for absolute links</span>
   <span class="Identifier">siteTitle</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>         <span class="Comment">## Site name shown in header and &lt;title&gt;</span>
-  <span class="Identifier">siteDescription</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>   <span class="Comment">## Meta description for SEO</span></pre></dt>
+  <span class="Identifier">siteDescription</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>   <span class="Comment">## Meta description for SEO</span>
+  <span class="Identifier">favicon</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>           <span class="Comment">## Favicon filename discovered in public/</span>
+  <span class="Identifier">cssFiles</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>     <span class="Comment">## CSS files discovered in public/</span>
+  <span class="Identifier">jsFiles</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>      <span class="Comment">## JS files discovered in public/</span>
+  <span class="Identifier">ogImage</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>           <span class="Comment">## OG image filename discovered in public/</span>
+  <span class="Identifier">appleTouchIcon</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>    <span class="Comment">## Apple touch icon discovered in public/</span>
+  <span class="Identifier">backgroundImage</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>   <span class="Comment">## Site-wide background image (background.jpg/png/webp)</span>
+  <span class="Identifier">backgroundVideo</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>   <span class="Comment">## Site-wide background video (background.mp4/webm)</span>
+  <span class="Identifier">enableSearch</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>        <span class="Comment">## Generate search page and index (default: true)</span>
+  <span class="Identifier">enableRss</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>           <span class="Comment">## Generate RSS feed (default: true)</span>
+  <span class="Identifier">enableSitemap</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>       <span class="Comment">## Generate sitemap.xml (default: true)</span>
+  <span class="Identifier">strictLinks</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>         <span class="Comment">## Fail build on broken internal links (default: false)</span></pre></dt>
   <dd>
     
-    Site-wide settings loaded from environment variables.
+    Site-wide settings from blg.conf, env vars, and asset discovery.
     
   </dd>
 </div>
 <div id="SourceFile">
-  <dt><pre><a href="types.html#SourceFile"><span class="Identifier">SourceFile</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <dt><pre><a href="#SourceFile"><span class="Identifier">SourceFile</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">path</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>              <span class="Comment">## Absolute filesystem path</span>
   <span class="Identifier">slug</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>              <span class="Comment">## Filename without extension, used for URLs</span>
   <span class="Identifier">title</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>             <span class="Comment">## First H1 heading from content</span>
@@ -182,7 +221,8 @@
   <span class="Identifier">createdAtHasTime</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>    <span class="Comment">## True if source included HH:MM</span>
   <span class="Identifier">modifiedAt</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">Time</span>          <span class="Comment">## File modification time</span>
   <span class="Identifier">content</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>           <span class="Comment">## Rendered HTML content</span>
-  <span class="Identifier">tags</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#TagInfo"><span class="Identifier">TagInfo</span></a><span class="Other">]</span>        <span class="Comment">## Tags this post belongs to</span></pre></dt>
+  <span class="Identifier">tags</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#TagInfo"><span class="Identifier">TagInfo</span></a><span class="Other">]</span>        <span class="Comment">## Tags this post belongs to</span>
+  <span class="Identifier">links</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#MarkdownLink"><span class="Identifier">MarkdownLink</span></a><span class="Other">]</span>  <span class="Comment">## Internal links found in source</span></pre></dt>
   <dd>
     
     Parsed markdown file with extracted metadata.
@@ -190,7 +230,7 @@
   </dd>
 </div>
 <div id="TagInfo">
-  <dt><pre><a href="types.html#TagInfo"><span class="Identifier">TagInfo</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <dt><pre><a href="#TagInfo"><span class="Identifier">TagInfo</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">slug</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>              <span class="Comment">## Lowercase hyphenated form for URLs</span>
   <span class="Identifier">label</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>             <span class="Comment">## Title case for display</span></pre></dt>
   <dd>
@@ -207,11 +247,11 @@
   <dl class="item">
     <div id="loadSiteConfig-procs-all">
   <div id="loadSiteConfig">
-  <dt><pre><span class="Keyword">proc</span> <a href="#loadSiteConfig"><span class="Identifier">loadSiteConfig</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <a href="types.html#SiteConfig"><span class="Identifier">SiteConfig</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span>
+  <dt><pre><span class="Keyword">proc</span> <a href="#loadSiteConfig"><span class="Identifier">loadSiteConfig</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <a href="#SiteConfig"><span class="Identifier">SiteConfig</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span>
                                     <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Load BLG_BASE_URL, BLG_SITE_TITLE, BLG_SITE_DESCRIPTION from env.
+    Load feature toggles from env. Site title and description come from blg.conf, see blg/conf.nim.
     
   </dd>
 </div>
@@ -249,7 +289,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-02-27 13:16:03 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-14 12:34:59 UTC</small>
       </div>
     </div>
   </div>

@@ -5,7 +5,7 @@ import std/[times, strutils, unicode, envvars]
 
 type
   SiteConfig* = object
-    ## Site-wide settings loaded from environment variables.
+    ## Site-wide settings from blg.conf, env vars, and asset discovery.
     baseUrl*: string          ## Prepended to relative URLs for absolute links
     siteTitle*: string        ## Site name shown in header and <title>
     siteDescription*: string  ## Meta description for SEO
@@ -102,10 +102,9 @@ proc envBool(key: string, default: bool = true): bool =
   val notin ["0", "false", "no", "off"]
 
 proc loadSiteConfig*(): SiteConfig =
-  ## Load BLG_BASE_URL, BLG_SITE_TITLE, BLG_SITE_DESCRIPTION from env.
+  ## Load feature toggles from env. Site title and description come
+  ## from blg.conf, see blg/conf.nim.
   result.baseUrl = getEnv("BLG_BASE_URL", "").strip(chars = {'/'})
-  result.siteTitle = getEnv("BLG_SITE_TITLE", "")
-  result.siteDescription = getEnv("BLG_SITE_DESCRIPTION", "")
   result.enableSearch = envBool("BLG_SEARCH")
   result.enableRss = envBool("BLG_RSS")
   result.enableSitemap = envBool("BLG_SITEMAP")

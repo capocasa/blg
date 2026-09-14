@@ -42,6 +42,12 @@ proc countLinks(html, pattern: string): int =
 proc hasLink(html, href: string): bool =
   html.contains("href=\"" & href & "\"")
 
+proc runBlgWithConf(conf: string, args = "-i pages -o public --cache html"):
+    tuple[output: string, exitCode: int] =
+  ## Write blg.conf into TestDir and run the blg binary there.
+  writeFile(TestDir / "blg.conf", conf)
+  execCmdEx(getCurrentDir() / "blg" & " " & args, workingDir = TestDir)
+
 suite "Pagination":
   setup:
     let dir = setupTestDir()
@@ -301,24 +307,42 @@ suite "Configuration cascading":
     delEnv("BLG_PER_PAGE")
     cleanup()
 
-  test "env var overrides .env file":
-    # Create .env with one set of values
-    writeFile(TestDir / ".env", """
-BLG_INPUT=pages
-BLG_OUTPUT=from-dotenv
-BLG_CACHE=cache-dotenv
+  test "conf file sets site title and description":
+    writeFile(TestDir / "blg.conf", """
+[site]
+title = Conf Title
+description = From the conf file
 """)
-    createDir(TestDir / "from-dotenv")
-    createDir(TestDir / "from-env")
 
-    # Run blg with env var override
     let blgPath = getCurrentDir() / "blg"
-    let (_, exitCode) = execCmdEx(blgPath, workingDir = TestDir,
-      env = newStringTable({"BLG_OUTPUT": "from-env"}))
+    let (_, exitCode) = execCmdEx(blgPath & " -i pages -o public --cache html",
+      workingDir = TestDir)
     check exitCode == 0
-    # Should use env var output dir, not .env
-    check dirExists(TestDir / "from-env")
-    check fileExists(TestDir / "from-env" / "index.html")
+    let html = readFile(TestDir / "public" / "index.html")
+    check html.contains("Conf Title")
+    check html.contains("From the conf file")
+
+  test "conf switch loads alternate config file":
+    writeFile(TestDir / "blg.conf", "[site]\ntitle = Default Conf\n")
+    writeFile(TestDir / "alt.conf", "[site]\ntitle = Alt Conf\n")
+
+    let blgPath = getCurrentDir() / "blg"
+    let (_, exitCode) = execCmdEx(blgPath & " -C alt.conf -i pages -o public --cache html",
+      workingDir = TestDir)
+    check exitCode == 0
+    let html = readFile(TestDir / "public" / "index.html")
+    check html.contains("Alt Conf")
+    check not html.contains("Default Conf")
+
+  test "conf files section controls output extension":
+    writeFile(TestDir / "blg.conf", "[files]\nextension = \"\"\n")
+
+    let blgPath = getCurrentDir() / "blg"
+    let (_, exitCode) = execCmdEx(blgPath & " -i pages -o public --cache html",
+      workingDir = TestDir)
+    check exitCode == 0
+    check fileExists(TestDir / "public" / "test")
+    check not fileExists(TestDir / "public" / "test.html")
 
   test "CLI param overrides env var":
     createDir(TestDir / "from-env")
@@ -331,6 +355,50 @@ BLG_CACHE=cache-dotenv
     check exitCode == 0
     # Should use CLI output dir
     check fileExists(TestDir / "from-cli" / "index.html")
+
+suite "Config file validation":
+  setup:
+    let dir = setupTestDir()
+    createDir(dir / "pages")
+    createPost(dir / "pages", "test", "# Test")
+
+  teardown:
+    cleanup()
+
+  test "unknown section is an error":
+    let (output, exitCode) = runBlgWithConf("[stie]\ntitle = X\n")
+    check exitCode != 0
+    check output.contains("unknown section [stie]")
+
+  test "unknown key is an error":
+    let (output, exitCode) = runBlgWithConf("[site]\ntitel = X\n")
+    check exitCode != 0
+    check output.contains("unknown key 'titel'")
+
+  test "duplicate key is an error":
+    let (output, exitCode) = runBlgWithConf("[site]\ntitle = A\ntitle = B\n")
+    check exitCode != 0
+    check output.contains("declared twice")
+
+  test "duplicate section is an error":
+    let (output, exitCode) = runBlgWithConf(
+      "[site]\ntitle = A\n[site]\ndescription = B\n")
+    check exitCode != 0
+    check output.contains("declared twice")
+
+  test "invalid extension value is an error":
+    let (output, exitCode) = runBlgWithConf("[files]\nextension = .html\n")
+    check exitCode != 0
+    check output.contains("invalid value '.html'")
+
+  test "syntax error is an error":
+    let (_, exitCode) = runBlgWithConf("[site\ntitle = X\n")
+    check exitCode != 0
+
+  test "key outside a section is an error":
+    let (output, exitCode) = runBlgWithConf("title = X\n")
+    check exitCode != 0
+    check output.contains("outside of a section")
 
 suite "Page-tag collision":
   setup:

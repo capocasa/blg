@@ -16,13 +16,16 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4QQQEwksSS9ZWwAAAk1JREFUWMPtll2ITVEUx39nn/O7Y5qR8f05wtCUUr6ZIS++8pEnkZInPImneaCQ5METNdOkeFBKUhMPRIkHKfEuUZSUlGlKPN2TrgfncpvmnntnmlEyq1Z7t89/rf9a6+y99oZxGZf/XeIq61EdtgKXgdXA0xrYAvBjOIF1AI9zvjcC74BSpndrJPkBWDScTF8Aa4E3wDlgHbASaANmVqlcCnwHvgDvgVfAJ+AikAAvgfVZwLnSVZHZaOuKoQi3ZOMi4NkYkpe1p4J7A8BpYAD49hfIy/oqG0+hLomiKP2L5L+1ubn5115S+3OAn4EnwBlgMzCjyt6ZAnQCJ4A7wOs88iRJHvw50HoujuPBoCKwHWiosy8MdfZnAdcHk8dxXFJ3VQbQlCTJvRBCGdRbD4M6uc5glpY3eAihpN5S5w12diSEcCCEcKUO4ljdr15T76ur1FDDLIQQ3qv71EdDOe3Kxj3leRXyk+pxdWnFWod6Wt2bY3de3aSuUHcPBVimHs7mK9WrmeOF6lR1o9qnzskh2ar2qm1qizpfXaPeVGdlmGN5pb09qMxz1Xb1kLqgzn1RyH7JUXW52lr5e/Kqi9qpto7V1atuUzfnARrV7jEib1T76gG2qxdGmXyiekkt1GswPTtek0aBfJp6YySGBfWg2tPQ0FAYgf1stUfdmdcjarbYJEniKIq6gY/Aw+zWHAC+p2labGpqiorFYgGYCEzN7oQdQClN07O1/EfDyGgC0ALMBdYAi4FyK+4H3gLPsxfR1zRNi+NP7nH5J+QntnXe5B5mpfQAAAAASUVORK5CYII=">
 
 <!-- CSS -->
-<link rel="stylesheet" type="text/css" href="../nimdoc.out.css?v=2.2.8">
+<link rel="stylesheet" type="text/css" href="../nimdoc.out.css?v=2.2.12">
 
 <!-- JS -->
-<script type="text/javascript" src="../dochack.js?v=2.2.8"></script>
+<script type="text/javascript" src="../dochack.js?v=2.2.12"></script>
 </head>
 <body>
   <div class="document" id="documentId">
+    <input type="checkbox" id="nav-toggle" hidden>
+    <label for="nav-toggle" id="nav-burger">&#9776;</label>
+    <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">blg/dynload</h1>
       <div class="row">
@@ -124,7 +127,7 @@
   <h1><a class="toc-backref" href="#7">Types</a></h1>
   <dl class="item">
     <div id="RenderFooterProc">
-  <dt><pre><a href="dynload.html#RenderFooterProc"><span class="Identifier">RenderFooterProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">bottomMenu</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">hasMultipleMenus</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
+  <dt><pre><a href="#RenderFooterProc"><span class="Identifier">RenderFooterProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">bottomMenu</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">hasMultipleMenus</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
     <span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
     
@@ -133,7 +136,7 @@
   </dd>
 </div>
 <div id="RenderHeadProc">
-  <dt><pre><a href="dynload.html#RenderHeadProc"><span class="Identifier">RenderHeadProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">fullTitle</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">config</span><span class="Other">:</span> <a href="types.html#SiteConfig"><span class="Identifier">SiteConfig</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
+  <dt><pre><a href="#RenderHeadProc"><span class="Identifier">RenderHeadProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">fullTitle</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">config</span><span class="Other">:</span> <a href="types.html#SiteConfig"><span class="Identifier">SiteConfig</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
     
     Renders HTML &lt;head&gt; with meta tags and title.
@@ -141,7 +144,7 @@
   </dd>
 </div>
 <div id="RenderListProc">
-  <dt><pre><a href="dynload.html#RenderListProc"><span class="Identifier">RenderListProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">posts</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#PostPreview"><span class="Identifier">PostPreview</span></a><span class="Other">]</span><span class="Other">;</span>
+  <dt><pre><a href="#RenderListProc"><span class="Identifier">RenderListProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">posts</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#PostPreview"><span class="Identifier">PostPreview</span></a><span class="Other">]</span><span class="Other">;</span>
                        <span class="Identifier">menus</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">page</span><span class="Other">,</span> <span class="Identifier">totalPages</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
     <span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
@@ -151,7 +154,7 @@
   </dd>
 </div>
 <div id="RenderMenuItemProc">
-  <dt><pre><a href="dynload.html#RenderMenuItemProc"><span class="Identifier">RenderMenuItemProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">item</span><span class="Other">:</span> <a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
+  <dt><pre><a href="#RenderMenuItemProc"><span class="Identifier">RenderMenuItemProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">item</span><span class="Other">:</span> <a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
     
     Renders a single nav menu item with children.
@@ -159,7 +162,7 @@
   </dd>
 </div>
 <div id="RenderPageProc">
-  <dt><pre><a href="dynload.html#RenderPageProc"><span class="Identifier">RenderPageProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">title</span><span class="Other">,</span> <span class="Identifier">content</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">date</span><span class="Other">,</span> <span class="Identifier">modified</span><span class="Other">:</span> <span class="Identifier">Time</span><span class="Other">;</span>
+  <dt><pre><a href="#RenderPageProc"><span class="Identifier">RenderPageProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">title</span><span class="Other">,</span> <span class="Identifier">content</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">date</span><span class="Other">,</span> <span class="Identifier">modified</span><span class="Other">:</span> <span class="Identifier">Time</span><span class="Other">;</span>
                        <span class="Identifier">menus</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
     
@@ -168,7 +171,7 @@
   </dd>
 </div>
 <div id="RenderPostProc">
-  <dt><pre><a href="dynload.html#RenderPostProc"><span class="Identifier">RenderPostProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">title</span><span class="Other">,</span> <span class="Identifier">content</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">date</span><span class="Other">,</span> <span class="Identifier">modified</span><span class="Other">:</span> <span class="Identifier">Time</span><span class="Other">;</span>
+  <dt><pre><a href="#RenderPostProc"><span class="Identifier">RenderPostProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">title</span><span class="Other">,</span> <span class="Identifier">content</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">date</span><span class="Other">,</span> <span class="Identifier">modified</span><span class="Other">:</span> <span class="Identifier">Time</span><span class="Other">;</span>
                        <span class="Identifier">menus</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#TagInfo"><span class="Identifier">TagInfo</span></a><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
     <span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
@@ -178,7 +181,7 @@
   </dd>
 </div>
 <div id="RenderSiteHeaderProc">
-  <dt><pre><a href="dynload.html#RenderSiteHeaderProc"><span class="Identifier">RenderSiteHeaderProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">config</span><span class="Other">:</span> <a href="types.html#SiteConfig"><span class="Identifier">SiteConfig</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
+  <dt><pre><a href="#RenderSiteHeaderProc"><span class="Identifier">RenderSiteHeaderProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">config</span><span class="Other">:</span> <a href="types.html#SiteConfig"><span class="Identifier">SiteConfig</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
     
     Renders site title and tagline header.
@@ -186,7 +189,7 @@
   </dd>
 </div>
 <div id="RenderTopNavProc">
-  <dt><pre><a href="dynload.html#RenderTopNavProc"><span class="Identifier">RenderTopNavProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">topMenu</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
+  <dt><pre><a href="#RenderTopNavProc"><span class="Identifier">RenderTopNavProc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">topMenu</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="types.html#MenuItem"><span class="Identifier">MenuItem</span></a><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span class="Identifier">nimcall</span>.}</pre></dt>
   <dd>
     
     Renders top navigation bar.
@@ -194,15 +197,15 @@
   </dd>
 </div>
 <div id="TemplateLib">
-  <dt><pre><a href="dynload.html#TemplateLib"><span class="Identifier">TemplateLib</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">renderPost</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderPostProc"><span class="Identifier">RenderPostProc</span></a>
-  <span class="Identifier">renderPage</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderPageProc"><span class="Identifier">RenderPageProc</span></a>
-  <span class="Identifier">renderList</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderListProc"><span class="Identifier">RenderListProc</span></a>
-  <span class="Identifier">renderMenuItem</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderMenuItemProc"><span class="Identifier">RenderMenuItemProc</span></a>
-  <span class="Identifier">renderHead</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderHeadProc"><span class="Identifier">RenderHeadProc</span></a>
-  <span class="Identifier">renderTopNav</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderTopNavProc"><span class="Identifier">RenderTopNavProc</span></a>
-  <span class="Identifier">renderSiteHeader</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderSiteHeaderProc"><span class="Identifier">RenderSiteHeaderProc</span></a>
-  <span class="Identifier">renderFooter</span><span class="Operator">*</span><span class="Other">:</span> <a href="dynload.html#RenderFooterProc"><span class="Identifier">RenderFooterProc</span></a></pre></dt>
+  <dt><pre><a href="#TemplateLib"><span class="Identifier">TemplateLib</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">renderPost</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderPostProc"><span class="Identifier">RenderPostProc</span></a>
+  <span class="Identifier">renderPage</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderPageProc"><span class="Identifier">RenderPageProc</span></a>
+  <span class="Identifier">renderList</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderListProc"><span class="Identifier">RenderListProc</span></a>
+  <span class="Identifier">renderMenuItem</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderMenuItemProc"><span class="Identifier">RenderMenuItemProc</span></a>
+  <span class="Identifier">renderHead</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderHeadProc"><span class="Identifier">RenderHeadProc</span></a>
+  <span class="Identifier">renderTopNav</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderTopNavProc"><span class="Identifier">RenderTopNavProc</span></a>
+  <span class="Identifier">renderSiteHeader</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderSiteHeaderProc"><span class="Identifier">RenderSiteHeaderProc</span></a>
+  <span class="Identifier">renderFooter</span><span class="Operator">*</span><span class="Other">:</span> <a href="#RenderFooterProc"><span class="Identifier">RenderFooterProc</span></a></pre></dt>
   <dd>
     
     Container for loaded template function pointers.
@@ -217,7 +220,7 @@
   <dl class="item">
     <div id="isLoaded-procs-all">
   <div id="isLoaded,TemplateLib">
-  <dt><pre><span class="Keyword">proc</span> <a href="#isLoaded%2CTemplateLib"><span class="Identifier">isLoaded</span></a><span class="Other">(</span><span class="Identifier">tl</span><span class="Other">:</span> <a href="dynload.html#TemplateLib"><span class="Identifier">TemplateLib</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#isLoaded%2CTemplateLib"><span class="Identifier">isLoaded</span></a><span class="Other">(</span><span class="Identifier">tl</span><span class="Other">:</span> <a href="#TemplateLib"><span class="Identifier">TemplateLib</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     True if a custom template library was successfully loaded.
@@ -228,7 +231,7 @@
 </div>
 <div id="loadTemplateLib-procs-all">
   <div id="loadTemplateLib,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#loadTemplateLib%2Cstring"><span class="Identifier">loadTemplateLib</span></a><span class="Other">(</span><span class="Identifier">path</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="dynload.html#TemplateLib"><span class="Identifier">TemplateLib</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+  <dt><pre><span class="Keyword">proc</span> <a href="#loadTemplateLib%2Cstring"><span class="Identifier">loadTemplateLib</span></a><span class="Other">(</span><span class="Identifier">path</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="#TemplateLib"><span class="Identifier">TemplateLib</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
@@ -240,7 +243,7 @@
 </div>
 <div id="unloadTemplateLib-procs-all">
   <div id="unloadTemplateLib,TemplateLib">
-  <dt><pre><span class="Keyword">proc</span> <a href="#unloadTemplateLib%2CTemplateLib"><span class="Identifier">unloadTemplateLib</span></a><span class="Other">(</span><span class="Identifier">tl</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="dynload.html#TemplateLib"><span class="Identifier">TemplateLib</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#unloadTemplateLib%2CTemplateLib"><span class="Identifier">unloadTemplateLib</span></a><span class="Other">(</span><span class="Identifier">tl</span><span class="Other">:</span> <span class="Keyword">var</span> <a href="#TemplateLib"><span class="Identifier">TemplateLib</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Unload shared library and reset all proc pointers to nil.
@@ -259,7 +262,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-02-27 13:16:03 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-14 12:34:59 UTC</small>
       </div>
     </div>
   </div>

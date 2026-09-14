@@ -53,6 +53,22 @@ renders as a link where the URL is both the text and the href. URLs inside
 code spans, fenced code blocks, and existing `[text](url)` links are left
 alone.
 
+# Configuration
+
+`blg.conf` in the working directory, or point somewhere else with `-C`:
+
+    [site]
+    title = My Blog
+    description = A blog about code
+
+    [files]
+    extension = html      # "" for extensionless URLs
+
+The parser is strict: unknown or duplicate sections and keys and invalid
+values are errors. A typo should fail the build, not quietly ignore your
+config. Everything else is a switch (`blg -h`) or an environment variable
+(`BLG_BASE_URL`, `BLG_DATE_FORMAT`, ...).
+
 # Documentation
 
 The full manual (tags, pages, custom menus, pretty URLs, styling,
@@ -62,6 +78,7 @@ backgrounds, scoped assets, templating, config reference) lives at
 # Changelog
 
 ```
+0.3.1    blg.conf config file replaces .env: site title/description, output extension, strict parsing
 0.2.0    Scoped assets, backgrounds, OG tags, RSS, sitemap, preview fix
 0.1.0    Initial release
 ```

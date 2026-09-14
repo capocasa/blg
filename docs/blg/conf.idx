@@ -1,0 +1,3 @@
+nimTitle	conf	blg/conf.html	module blg/conf		0
+nim	Conf	blg/conf.html#Conf	object Conf		10
+nim	loadConf	blg/conf.html#loadConf,string	proc loadConf(path: string): Conf		24
