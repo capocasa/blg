@@ -468,6 +468,20 @@ suite "Cache busting":
     # Cache file should not be modified
     check getFileInfo(cacheFile).lastWriteTime == cacheMtime
 
+  test "touching a source without content change reuses cache":
+    createPost(pages, "post1", "# Content")
+    buildSite(pages, output, cache, perPage = 20)
+
+    let cacheFile = cache / "post1.html"
+    let cacheMtime = getFileInfo(cacheFile).lastWriteTime
+
+    # Push the source mtime into the future: stale by any clock reading,
+    # unchanged by content. Only content decides freshness now.
+    setLastModificationTime(pages / "post1.md", getTime() + initDuration(seconds = 60))
+    buildSite(pages, output, cache, perPage = 20)
+
+    check getFileInfo(cacheFile).lastWriteTime == cacheMtime
+
   test "new post triggers list regeneration":
     createPost(pages, "post1", "# Post 1", age = 20)
     buildSite(pages, output, cache, perPage = 20)

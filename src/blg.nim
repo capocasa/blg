@@ -26,7 +26,7 @@
 ##   md/*.md → [parse date] → [render markdown] → cache/*.html → [apply template] → public/*.html
 ##          ↘ md/tag-name/*.md (symlinks) → tag pages
 ##
-## Incremental builds compare mtimes. Force rebuild with `-f`.
+## Incremental builds compare source content hashes. Force rebuild with `-f`.
 ##
 ## Modules
 ## -------

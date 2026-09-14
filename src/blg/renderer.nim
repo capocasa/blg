@@ -2,7 +2,7 @@
 ## Handles date extraction, HTML caching, link processing, and page generation.
 ## See `blg <blg.html>`_ for template override instructions.
 
-import std/[os, times, strutils, options, json]
+import std/[os, times, strutils, options, json, sha1]
 import md, types, datetime, dynload
 
 var helperLib*: TemplateLib  ## Set by blg.nim to enable template overrides
@@ -321,22 +321,24 @@ include "templates/list.nimf"
 
 proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[content: string, changed: bool] =
   ## Render markdown to HTML with caching; returns (html, wasRerendered).
+  ## Cache validity is a SHA-1 of the source content, stored in a sidecar
+  ## next to the cached HTML. Not mtimes: clocks jitter backward and
+  ## filesystems truncate timestamps, and either makes a fresh cache look
+  ## stale forever. A re-render is decided by content alone, so touching
+  ## a file costs nothing and no clock quirk can force re-renders.
   let cachePath = cacheDir / path.splitFile.name & ".html"
-  let srcMtime = getFileInfo(path).lastWriteTime
+  let hashPath = cachePath & ".sha1"
+  let srcHash = $secureHash(readFile(path))
 
-  if not force and fileExists(cachePath):
-    let cacheMtime = getFileInfo(cachePath).lastWriteTime
-    # Clock jitter tolerance: CI runners slew their clocks, and a backward
-    # step makes a source look newer than a cache written after it, which
-    # forces endless re-renders. Edits landing within the window are
-    # picked up on the next build; make works the same way.
-    if cacheMtime.toUnixFloat + 0.01 >= srcMtime.toUnixFloat:
+  if not force and fileExists(cachePath) and fileExists(hashPath):
+    if readFile(hashPath) == srcHash:
       return (readFile(cachePath), false)
 
   let content = readFile(path).stripDateLine.insertReadMoreMarker
   let rendered = markdown(content)
   createDir(cacheDir)
   writeFile(cachePath, rendered)
+  writeFile(hashPath, srcHash)
   (rendered, true)
 
 proc linkFirstH1*(content: string, url: string): string =
