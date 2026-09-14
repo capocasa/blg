@@ -326,7 +326,11 @@ proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[conte
 
   if not force and fileExists(cachePath):
     let cacheMtime = getFileInfo(cachePath).lastWriteTime
-    if cacheMtime >= srcMtime:
+    # Clock jitter tolerance: CI runners slew their clocks, and a backward
+    # step makes a source look newer than a cache written after it, which
+    # forces endless re-renders. Edits landing within the window are
+    # picked up on the next build; make works the same way.
+    if cacheMtime.toUnixFloat + 0.01 >= srcMtime.toUnixFloat:
       return (readFile(cachePath), false)
 
   let content = readFile(path).stripDateLine.insertReadMoreMarker
