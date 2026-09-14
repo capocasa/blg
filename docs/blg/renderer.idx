@@ -1,29 +1,29 @@
 nimTitle	renderer	blg/renderer.html	module blg/renderer		0
-nim	helperLib	blg/renderer.html#helperLib	var helperLib		8
-nim	searchUrlSuffix	blg/renderer.html#searchUrlSuffix	var searchUrlSuffix		9
-nim	searchEnabled	blg/renderer.html#searchEnabled	var searchEnabled		10
-nim	rssEnabled	blg/renderer.html#rssEnabled	var rssEnabled		11
-nim	isIsoDate	blg/renderer.html#isIsoDate,string	proc isIsoDate(line: string): bool		13
-nim	extractIsoDate	blg/renderer.html#extractIsoDate,string	proc extractIsoDate(content: string): Option[(Time, bool)]		50
-nim	stripDateLine	blg/renderer.html#stripDateLine,string	proc stripDateLine(content: string): string		79
-nim	formatDate	blg/renderer.html#formatDate,Time	proc formatDate(t: Time; hasTime = false): string		102
-nim	generatePageLinks	blg/renderer.html#generatePageLinks,string,int,int,string	proc generatePageLinks(listSlug: string; current, total: int; urlSuffix = ".html"): seq[\n    PageLink]		113
-nim	extractFirstImage	blg/renderer.html#extractFirstImage,string	proc extractFirstImage(html: string): string		156
-nim	resolveBackground	blg/renderer.html#resolveBackground,string,seq[TagInfo],string,string,SiteConfig	proc resolveBackground(slug: string; tags: seq[TagInfo]; pageType: string;\n                  outputDir: string; config: SiteConfig): tuple[\n    image, video: string]		174
-nim	renderBackground	blg/renderer.html#renderBackground,tuple[string,string]	proc renderBackground(bg: tuple[image, video: string]): tuple[\n    bodyStyle, bodyInsert: string]		217
-nim	renderScopedAssets	blg/renderer.html#renderScopedAssets,string,seq[TagInfo],string,string	proc renderScopedAssets(slug: string; tags: seq[TagInfo]; pageType: string;\n                   outputDir: string): string		235
-nim	resolveOgImage	blg/renderer.html#resolveOgImage,string,SiteConfig	proc resolveOgImage(content: string; config: SiteConfig): string		268
+nim	helperLib	blg/renderer.html#helperLib	var helperLib		9
+nim	searchUrlSuffix	blg/renderer.html#searchUrlSuffix	var searchUrlSuffix		10
+nim	searchEnabled	blg/renderer.html#searchEnabled	var searchEnabled		11
+nim	rssEnabled	blg/renderer.html#rssEnabled	var rssEnabled		12
+nim	isIsoDate	blg/renderer.html#isIsoDate,string	proc isIsoDate(line: string): bool		14
+nim	extractIsoDate	blg/renderer.html#extractIsoDate,string	proc extractIsoDate(content: string): Option[(Time, bool)]		51
+nim	stripDateLine	blg/renderer.html#stripDateLine,string	proc stripDateLine(content: string): string		80
+nim	formatDate	blg/renderer.html#formatDate,Time	proc formatDate(t: Time; hasTime = false): string		103
+nim	generatePageLinks	blg/renderer.html#generatePageLinks,string,int,int,string	proc generatePageLinks(listSlug: string; current, total: int; urlSuffix = ".html"): seq[\n    PageLink]		114
+nim	extractFirstImage	blg/renderer.html#extractFirstImage,string	proc extractFirstImage(html: string): string		157
+nim	resolveBackground	blg/renderer.html#resolveBackground,string,seq[TagInfo],string,string,SiteConfig	proc resolveBackground(slug: string; tags: seq[TagInfo]; pageType: string;\n                  outputDir: string; config: SiteConfig): tuple[\n    image, video: string]		175
+nim	renderBackground	blg/renderer.html#renderBackground,tuple[string,string]	proc renderBackground(bg: tuple[image, video: string]): tuple[\n    bodyStyle, bodyInsert: string]		218
+nim	renderScopedAssets	blg/renderer.html#renderScopedAssets,string,seq[TagInfo],string,string	proc renderScopedAssets(slug: string; tags: seq[TagInfo]; pageType: string;\n                   outputDir: string): string		236
+nim	resolveOgImage	blg/renderer.html#resolveOgImage,string,SiteConfig	proc resolveOgImage(content: string; config: SiteConfig): string		269
 nim	pageTemplate	blg/renderer.html#pageTemplate,string,string,Time,Time,seq[seq[MenuItem]],SiteConfig	proc pageTemplate(title, content: string; date, modified: Time;\n             menus: seq[seq[MenuItem]]; config: SiteConfig): string		3
 nim	postTemplate	blg/renderer.html#postTemplate,string,string,Time,Time,bool,seq[seq[MenuItem]],seq[TagInfo],SiteConfig	proc postTemplate(title, content: string; date, modified: Time; dateHasTime: bool;\n             menus: seq[seq[MenuItem]]; tags: seq[TagInfo]; config: SiteConfig): string		3
 nim	listTemplate	blg/renderer.html#listTemplate,string,seq[PostPreview],seq[seq[MenuItem]],int,int,string,SiteConfig	proc listTemplate(title: string; posts: seq[PostPreview]; menus: seq[seq[MenuItem]];\n             page, totalPages: int; urlSuffix = ".html"; config: SiteConfig): string		3
-nim	renderMarkdown	blg/renderer.html#renderMarkdown,string,string	proc renderMarkdown(path: string; cacheDir: string; force = false): tuple[\n    content: string, changed: bool]		322
-nim	linkFirstH1	blg/renderer.html#linkFirstH1,string,string	proc linkFirstH1(content: string; url: string): string		338
-nim	extractPreview	blg/renderer.html#extractPreview,string	proc extractPreview(content: string): string		394
-nim	processLinks	blg/renderer.html#processLinks,string,SiteConfig	proc processLinks(html: string; config: SiteConfig): string		420
-nim	renderPage	blg/renderer.html#renderPage,SourceFile,seq[seq[MenuItem]],SiteConfig	proc renderPage(src: SourceFile; menus: seq[seq[MenuItem]]; config: SiteConfig): string		563
-nim	renderPost	blg/renderer.html#renderPost,SourceFile,seq[seq[MenuItem]],SiteConfig	proc renderPost(src: SourceFile; menus: seq[seq[MenuItem]]; config: SiteConfig): string		567
-nim	renderList	blg/renderer.html#renderList,string,seq[SourceFile],seq[seq[MenuItem]],int,int,string,SiteConfig	proc renderList(listTitle: string; posts: seq[SourceFile]; menus: seq[seq[MenuItem]];\n           page, totalPages: int; urlSuffix = ".html"; config: SiteConfig): string		571
-nim	generateRssFeed	blg/renderer.html#generateRssFeed,seq[SourceFile],SiteConfig,string	proc generateRssFeed(posts: seq[SourceFile]; config: SiteConfig; urlSuffix: string): string		611
-nim	generateSitemap	blg/renderer.html#generateSitemap,seq[SourceFile],seq[string],SiteConfig,string	proc generateSitemap(sources: seq[SourceFile]; tagSlugs: seq[string];\n                config: SiteConfig; urlSuffix: string): string		642
-nim	generateSearchIndex	blg/renderer.html#generateSearchIndex,seq[SourceFile],SiteConfig,string	proc generateSearchIndex(posts: seq[SourceFile]; config: SiteConfig;\n                    urlSuffix: string): string		659
-nim	generateSearchPage	blg/renderer.html#generateSearchPage,seq[seq[MenuItem]],SiteConfig,string	proc generateSearchPage(menus: seq[seq[MenuItem]]; config: SiteConfig;\n                   urlSuffix: string): string		682
+nim	renderMarkdown	blg/renderer.html#renderMarkdown,string,string	proc renderMarkdown(path: string; cacheDir: string; force = false): tuple[\n    content: string, changed: bool]		323
+nim	linkFirstH1	blg/renderer.html#linkFirstH1,string,string	proc linkFirstH1(content: string; url: string): string		345
+nim	extractPreview	blg/renderer.html#extractPreview,string	proc extractPreview(content: string): string		401
+nim	processLinks	blg/renderer.html#processLinks,string,SiteConfig	proc processLinks(html: string; config: SiteConfig): string		427
+nim	renderPage	blg/renderer.html#renderPage,SourceFile,seq[seq[MenuItem]],SiteConfig	proc renderPage(src: SourceFile; menus: seq[seq[MenuItem]]; config: SiteConfig): string		570
+nim	renderPost	blg/renderer.html#renderPost,SourceFile,seq[seq[MenuItem]],SiteConfig	proc renderPost(src: SourceFile; menus: seq[seq[MenuItem]]; config: SiteConfig): string		574
+nim	renderList	blg/renderer.html#renderList,string,seq[SourceFile],seq[seq[MenuItem]],int,int,string,SiteConfig	proc renderList(listTitle: string; posts: seq[SourceFile]; menus: seq[seq[MenuItem]];\n           page, totalPages: int; urlSuffix = ".html"; config: SiteConfig): string		578
+nim	generateRssFeed	blg/renderer.html#generateRssFeed,seq[SourceFile],SiteConfig,string	proc generateRssFeed(posts: seq[SourceFile]; config: SiteConfig; urlSuffix: string): string		618
+nim	generateSitemap	blg/renderer.html#generateSitemap,seq[SourceFile],seq[string],SiteConfig,string	proc generateSitemap(sources: seq[SourceFile]; tagSlugs: seq[string];\n                config: SiteConfig; urlSuffix: string): string		649
+nim	generateSearchIndex	blg/renderer.html#generateSearchIndex,seq[SourceFile],SiteConfig,string	proc generateSearchIndex(posts: seq[SourceFile]; config: SiteConfig;\n                    urlSuffix: string): string		666
+nim	generateSearchPage	blg/renderer.html#generateSearchPage,seq[seq[MenuItem]],SiteConfig,string	proc generateSearchPage(menus: seq[seq[MenuItem]]; config: SiteConfig;\n                   urlSuffix: string): string		689

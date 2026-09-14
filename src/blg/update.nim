@@ -1,7 +1,8 @@
 ## Near-silent auto-update, lifted from 3code:
 ##
 ## - On launch, fork a fully detached worker (`blg --self-update-check`)
-##   that polls the GitHub releases API, downloads the matching archive,
+##   that polls the GitHub releases API, downloads the matching binary
+##   (a zip on Windows, bare elsewhere),
 ##   and atomically swaps the running binary's path. The current process
 ##   keeps using the old inode; the next launch picks up the new one.
 ## - Throttled so we hit the API at most once per 4h.
@@ -21,11 +22,18 @@ const
   Repo = "capocasa/blg"
   ThrottleSecs = 4 * 60 * 60
 
-const Archive =
+when defined(cacertBundle):
+  # CA bundle embedded at compile time (CI release builds fetch it into
+  # assets/); source builds compile without it and need no bundled trust.
+  const caBundle = staticRead("../../assets/cacert.pem")
+else:
+  const caBundle = ""
+
+const Asset =
   when defined(linux) and (defined(amd64) or defined(x86_64)):
-    "blg-linux-amd64.tar.gz"
+    "blg-linux-amd64"
   elif defined(macosx):
-    "blg-macos-universal.tar.gz"
+    "blg-macos-universal"
   elif defined(windows) and (defined(amd64) or defined(x86_64)):
     "blg-windows-amd64.zip"
   else:
@@ -51,17 +59,25 @@ proc autoUpdateEnabled*(): bool =
 proc lastVersionMarker(): string = dataRoot() / "last-version"
 proc updateCheckMarker(): string = dataRoot() / "last-update-check"
 
-proc bundledSslContext(): SslContext =
-  ## macOS/Windows ship OpenSSL whose `OPENSSLDIR` is baked to a
-  ## build-runner path that doesn't exist on user systems, so peer
-  ## verification can't scan the default location; feed it the
-  ## `cacert.pem` shipped next to the binary. Linux falls through to the
-  ## system trust store.
+proc caFile(): string =
+  ## macOS/Windows OpenSSL has its `OPENSSLDIR` baked to a build-runner
+  ## path that doesn't exist on user systems, so verification needs an
+  ## explicit CA file. Release builds embed the bundle and materialize it
+  ## into the data dir; a `cacert.pem` next to the binary (older tarball
+  ## installs) is the fallback. Linux uses the system trust store.
   when defined(macosx) or defined(windows):
-    let ca = parentDir(getAppFilename()) / "cacert.pem"
-    newContext(verifyMode = CVerifyPeer, caFile = if fileExists(ca): ca else: "")
-  else:
-    newContext(verifyMode = CVerifyPeer)
+    if caBundle.len > 0:
+      try:
+        createDir(dataRoot())
+        result = dataRoot() / "cacert.pem"
+        writeFile(result, caBundle)
+      except CatchableError: discard
+    if result.len == 0:
+      let sibling = parentDir(getAppFilename()) / "cacert.pem"
+      if fileExists(sibling): result = sibling
+
+proc bundledSslContext(): SslContext =
+  newContext(verifyMode = CVerifyPeer, caFile = caFile())
 
 proc parseSemver*(s: string): seq[int] =
   var t = s.strip
@@ -121,61 +137,52 @@ proc downloadAsset(tag, asset, dest: string): bool =
   except CatchableError:
     false
 
-proc extractArchive(archive, workDir: string): string =
-  ## Extract `archive` into `workDir` (wiped first). Returns the path to
-  ## the directory containing the extracted binary, or "" on failure.
-  ## Windows ships a zip and Win10's bsdtar handles both formats via
-  ## `tar -xf` (autodetects compression).
-  try: removeDir(workDir) except CatchableError: discard
-  try: createDir(workDir) except CatchableError: return ""
-  let cmd =
-    when defined(windows):
-      "tar -xf " & quoteShell(archive) & " -C " & quoteShell(workDir)
-    else:
-      "tar -xzf " & quoteShell(archive) & " -C " & quoteShell(workDir)
-  if execShellCmd(cmd) != 0: return ""
-  for f in walkDirRec(workDir):
-    if f.extractFilename == BinName:
-      return parentDir(f)
-  ""
+when defined(windows):
+  proc extractArchive(archive, workDir: string): string =
+    ## Extract `archive` into `workDir` (wiped first). Returns the path to
+    ## the directory containing the extracted binary, or "" on failure.
+    ## Win10's bsdtar autodetects zip via `tar -xf`.
+    try: removeDir(workDir) except CatchableError: discard
+    try: createDir(workDir) except CatchableError: return ""
+    let cmd = "tar -xf " & quoteShell(archive) & " -C " & quoteShell(workDir)
+    if execShellCmd(cmd) != 0: return ""
+    for f in walkDirRec(workDir):
+      if f.extractFilename == BinName:
+        return parentDir(f)
+    ""
 
-proc swapInstall*(srcDir, destBin: string): bool =
-  ## Replace `destBin` and any sibling runtime files (OpenSSL DLLs,
-  ## cacert.pem) with the new versions from `srcDir`.
-  ## README/LICENSE/VERSION are skipped.
-  ##
-  ## POSIX: stage each file as `<dest>.new` and atomic-rename. The running
-  ## process keeps the old inode for any file it has open.
-  ##
-  ## Windows: rename the in-use file to `<dest>.old` first (Windows allows
-  ## rename of an open file, just not overwrite), then write the new file
-  ## to the target name. `.old` cleanup happens at next launch.
-  let destDir = parentDir(destBin)
-  for entry in walkDir(srcDir):
-    if entry.kind notin {pcFile, pcLinkToFile}: continue
-    let name = entry.path.extractFilename
-    if name in ["README.md", "LICENSE", "VERSION"]: continue
-    let dest = destDir / name
-    when defined(windows):
+proc swapBinary*(src, dest: string): bool =
+  ## POSIX: stage the new binary as `<dest>.new` and atomic-rename it
+  ## into place. The running process keeps the old inode.
+  let stage = dest & ".new"
+  try:
+    copyFile(src, stage)
+    setFilePermissions(stage, {fpUserRead, fpUserWrite, fpUserExec,
+                               fpGroupRead, fpGroupExec,
+                               fpOthersRead, fpOthersExec})
+    moveFile(stage, dest)
+    true
+  except CatchableError:
+    try: removeFile(stage) except CatchableError: discard
+    false
+
+when defined(windows):
+  proc swapInstall*(srcDir, destBin: string): bool =
+    ## Replace `destBin` and sibling runtime files (OpenSSL DLLs) with
+    ## the new versions from `srcDir`. Windows can't overwrite a running
+    ## exe but allows renaming it: park it as `<dest>.old`, write the new
+    ## file, clean up `.old` at next launch.
+    let destDir = parentDir(destBin)
+    for entry in walkDir(srcDir):
+      if entry.kind notin {pcFile, pcLinkToFile}: continue
+      let dest = destDir / entry.path.extractFilename
       if fileExists(dest):
         let stale = dest & ".old"
         try: removeFile(stale) except CatchableError: discard
         try: moveFile(dest, stale) except CatchableError: discard
       try: copyFile(entry.path, dest)
       except CatchableError: return false
-    else:
-      let stage = dest & ".new"
-      try:
-        copyFile(entry.path, stage)
-        if name == BinName:
-          setFilePermissions(stage, {fpUserRead, fpUserWrite, fpUserExec,
-                                     fpGroupRead, fpGroupExec,
-                                     fpOthersRead, fpOthersExec})
-        moveFile(stage, dest)
-      except CatchableError:
-        try: removeFile(stage) except CatchableError: discard
-        return false
-  true
+    true
 
 proc cleanupStaleBinaries*() =
   ## Windows-only: delete `<name>.old` files left behind by `swapInstall`.
@@ -192,21 +199,27 @@ proc selfUpdateCheck*(curVersion: string, targetPath = "", force = false) =
   ## `curVersion` / `targetPath` exist for tests: they spoof the running
   ## version and binary path. `force` skips the config gate.
   if not force and not autoUpdateEnabled(): return
-  if Archive.len == 0: return
+  if Asset.len == 0: return
   let latest = fetchLatestTag()
   if latest.len == 0: return
   if not semverGt(latest, curVersion): return
   let cache = dataRoot() / "update"
   try: createDir(cache) except CatchableError: return
-  let tarPath = cache / Archive
-  if not downloadAsset(latest, Archive, tarPath): return
-  let extractDir = cache / "extract"
-  let srcDir = extractArchive(tarPath, extractDir)
-  if srcDir.len == 0: return
   let dest = if targetPath.len > 0: targetPath else: getAppFilename()
-  discard swapInstall(srcDir, dest)
-  try: removeFile(tarPath) except CatchableError: discard
-  try: removeDir(extractDir) except CatchableError: discard
+  when defined(windows):
+    # The zip carries the OpenSSL DLLs a bare exe can't do without.
+    let archivePath = cache / Asset
+    if not downloadAsset(latest, Asset, archivePath): return
+    let srcDir = extractArchive(archivePath, cache / "extract")
+    if srcDir.len == 0: return
+    discard swapInstall(srcDir, dest)
+    try: removeFile(archivePath) except CatchableError: discard
+    try: removeDir(cache / "extract") except CatchableError: discard
+  else:
+    let binPath = cache / BinName
+    if not downloadAsset(latest, Asset, binPath): return
+    if not swapBinary(binPath, dest): return
+    try: removeFile(binPath) except CatchableError: discard
 
 when defined(posix):
   import std/posix
@@ -215,7 +228,7 @@ when defined(posix):
     ## Double-fork + setsid so the worker survives the parent exiting and
     ## SIGHUP from the controlling terminal. Throttle is claimed before
     ## the fork so concurrent launches don't pile up.
-    if not autoUpdateEnabled() or Archive.len == 0: return
+    if not autoUpdateEnabled() or Asset.len == 0: return
     if not throttleExpired(): return
     touchThrottle()
     let pid = posix.fork()
@@ -244,7 +257,7 @@ elif defined(windows):
   proc spawnBackgroundUpdateMaybe*() =
     ## Windows: spawn the worker detached via `poDaemon`. Throttle is
     ## claimed before the spawn so concurrent launches don't pile up.
-    if not autoUpdateEnabled() or Archive.len == 0: return
+    if not autoUpdateEnabled() or Asset.len == 0: return
     if not throttleExpired(): return
     touchThrottle()
     try:

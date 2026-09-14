@@ -2,7 +2,8 @@
 ## Handles date extraction, HTML caching, link processing, and page generation.
 ## See `blg <blg.html>`_ for template override instructions.
 
-import std/[os, times, strutils, options, json, sha1]
+import std/[os, times, strutils, options, json]
+import checksums/sha1
 import md, types, datetime, dynload
 
 var helperLib*: TemplateLib  ## Set by blg.nim to enable template overrides

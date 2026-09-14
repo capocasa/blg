@@ -86,8 +86,8 @@
   <li><a class="reference" href="#spawnBackgroundUpdateMaybe" title="spawnBackgroundUpdateMaybe()">spawnBackgroundUpdateMaybe()</a></li>
 
 </ul>
-<ul class="simple nested-toc-section">swapInstall
-  <li><a class="reference" href="#swapInstall%2Cstring%2Cstring" title="swapInstall(srcDir, destBin: string): bool">swapInstall(srcDir, destBin: string): bool</a></li>
+<ul class="simple nested-toc-section">swapBinary
+  <li><a class="reference" href="#swapBinary%2Cstring%2Cstring" title="swapBinary(src, dest: string): bool">swapBinary(src, dest: string): bool</a></li>
 
 </ul>
 
@@ -102,7 +102,7 @@
     
     <div id="tocRoot"></div>
     
-    <p class="module-desc">Near-silent auto-update, lifted from 3code:<ul class="simple"><li>On launch, fork a fully detached worker (<tt class="docutils literal"><span class="pre"><span class="Identifier">blg</span> <span class="Operator">--</span><span class="Identifier">self</span><span class="Operator">-</span><span class="Identifier">update</span><span class="Operator">-</span><span class="Identifier">check</span></span></tt>) that polls the GitHub releases API, downloads the matching archive, and atomically swaps the running binary's path. The current process keeps using the old inode; the next launch picks up the new one.</li>
+    <p class="module-desc">Near-silent auto-update, lifted from 3code:<ul class="simple"><li>On launch, fork a fully detached worker (<tt class="docutils literal"><span class="pre"><span class="Identifier">blg</span> <span class="Operator">--</span><span class="Identifier">self</span><span class="Operator">-</span><span class="Identifier">update</span><span class="Operator">-</span><span class="Identifier">check</span></span></tt>) that polls the GitHub releases API, downloads the matching binary (a zip on Windows, bare elsewhere), and atomically swaps the running binary's path. The current process keeps using the old inode; the next launch picks up the new one.</li>
 <li>Throttled so we hit the API at most once per 4h.</li>
 <li>On the first launch after a swap, print one line on stderr.</li>
 </ul>
@@ -148,9 +148,9 @@
 <div id="selfUpdateCheck-procs-all">
   <div id="selfUpdateCheck,string,string">
   <dt><pre><span class="Keyword">proc</span> <a href="#selfUpdateCheck%2Cstring%2Cstring"><span class="Identifier">selfUpdateCheck</span></a><span class="Other">(</span><span class="Identifier">curVersion</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">targetPath</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">;</span> <span class="Identifier">force</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     <p>Worker entry point. Runs in the detached background process. Strictly silent: never writes to stdout/stderr.</p>
@@ -198,17 +198,14 @@
 </div>
 
 </div>
-<div id="swapInstall-procs-all">
-  <div id="swapInstall,string,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#swapInstall%2Cstring%2Cstring"><span class="Identifier">swapInstall</span></a><span class="Other">(</span><span class="Identifier">srcDir</span><span class="Other">,</span> <span class="Identifier">destBin</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+<div id="swapBinary-procs-all">
+  <div id="swapBinary,string,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#swapBinary%2Cstring%2Cstring"><span class="Identifier">swapBinary</span></a><span class="Other">(</span><span class="Identifier">src</span><span class="Other">,</span> <span class="Identifier">dest</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    <p>Replace <tt class="docutils literal"><span class="pre"><span class="Identifier">destBin</span></span></tt> and any sibling runtime files (OpenSSL DLLs, cacert.pem) with the new versions from <tt class="docutils literal"><span class="pre"><span class="Identifier">srcDir</span></span></tt>. README/LICENSE/VERSION are skipped.</p>
-<p>POSIX: stage each file as <tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">dest</span><span class="Operator">&gt;.</span><span class="Identifier">new</span></span></tt> and atomic-rename. The running process keeps the old inode for any file it has open.</p>
-<p>Windows: rename the in-use file to <tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">dest</span><span class="Operator">&gt;.</span><span class="Identifier">old</span></span></tt> first (Windows allows rename of an open file, just not overwrite), then write the new file to the target name. <tt class="docutils literal"><span class="pre"><span class="Operator">.</span><span class="Identifier">old</span></span></tt> cleanup happens at next launch.</p>
-
+    POSIX: stage the new binary as <tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span><span class="Identifier">dest</span><span class="Operator">&gt;.</span><span class="Identifier">new</span></span></tt> and atomic-rename it into place. The running process keeps the old inode.
     
   </dd>
 </div>
@@ -224,7 +221,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-14 12:34:59 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-14 15:01:49 UTC</small>
       </div>
     </div>
   </div>

@@ -15,13 +15,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             artifact: blg-linux-amd64
-            ext: tar.gz
           - os: macos-latest
             artifact: blg-macos-universal
-            ext: tar.gz
           - os: windows-latest
             artifact: blg-windows-amd64
-            ext: zip
 
     runs-on: ${{ matrix.os }}
 
@@ -48,9 +45,18 @@ jobs:
           nimble setup -y
           echo '--path:"src"' >> nimble.paths
 
+      - name: Fetch CA bundle (macOS, Windows)
+        # Release OpenSSL on mac/win can't find a trust store on user
+        # systems; embed the CA bundle into the binary (-d:cacertBundle).
+        if: runner.os != 'Linux'
+        run: curl -fsSL -o assets/cacert.pem https://curl.se/ca/cacert.pem
+
       - name: Compute build flags
         run: |
           FLAGS="-d:release -d:Version=${GITHUB_REF_NAME:-dev}"
+          if [[ "${RUNNER_OS}" != "Linux" ]]; then
+            FLAGS="$FLAGS -d:cacertBundle"
+          fi
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             # auto-update on in release binaries only; source builds
             # (nimble install) keep the default off
@@ -73,48 +79,43 @@ jobs:
       - name: Run tests
         run: nimble test
 
-      - name: Fetch CA bundle (macOS)
-        # Release macOS builds can't find a system trust store; ship
-        # cacert.pem next to the binary for the auto-updater's TLS.
-        if: runner.os == 'macOS'
-        run: curl -fsSL https://curl.se/ca/cacert.pem -o cacert.pem
-
-      - name: Fetch OpenSSL DLLs + CA bundle (Windows)
+      - name: Fetch OpenSSL DLLs (Windows)
         # Stock Windows ships no OpenSSL. Nim's std/net dlopens libssl /
         # libcrypto by hardcoded names; without these DLLs alongside
-        # blg.exe, any TLS code path dies. Use the canonical Nim Windows
-        # DLL bundle; it also ships a cacert.pem.
+        # blg.exe, any TLS code path dies. The canonical Nim Windows DLL
+        # bundle has them.
         if: runner.os == 'Windows'
         run: |
           curl -fsSL -o dlls.zip https://nim-lang.org/download/dlls.zip
           unzip -o -d dlls dlls.zip
 
-      - name: Package (Unix)
-        if: matrix.ext == 'tar.gz'
+      # Bare binaries as release assets; the CA bundle travels inside
+      # the binary, so there is nothing else to ship.
+      - name: Package (Linux, macOS)
+        if: runner.os != 'Windows'
         run: |
-          mkdir -p ${{ matrix.artifact }}
-          cp blg ${{ matrix.artifact }}/
-          if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            cp cacert.pem ${{ matrix.artifact }}/
-          fi
-          ./${{ matrix.artifact }}/blg -v > ${{ matrix.artifact }}/VERSION
-          cp README.md LICENSE ${{ matrix.artifact }}/
-          tar czf ${{ matrix.artifact }}.${{ matrix.ext }} ${{ matrix.artifact }}
+          cp blg ${{ matrix.artifact }}
+          ./${{ matrix.artifact }} -v
 
       - name: Package (Windows)
-        if: matrix.ext == 'zip'
+        # Zip: the exe can't update itself without the DLLs in place.
+        if: runner.os == 'Windows'
         run: |
           mkdir -p ${{ matrix.artifact }}
-          cp blg.exe ${{ matrix.artifact }}/
-          cp dlls/libssl-1_1-x64.dll dlls/libcrypto-1_1-x64.dll dlls/cacert.pem ${{ matrix.artifact }}/
-          ./${{ matrix.artifact }}/blg.exe -v | tr -d '\r' > ${{ matrix.artifact }}/VERSION
-          cp README.md LICENSE ${{ matrix.artifact }}/
-          7z a ${{ matrix.artifact }}.${{ matrix.ext }} ./${{ matrix.artifact }}
+          cp blg.exe dlls/libssl-1_1-x64.dll dlls/libcrypto-1_1-x64.dll ${{ matrix.artifact }}/
+          7z a ${{ matrix.artifact }}.zip ./${{ matrix.artifact }}
 
       - uses: actions/upload-artifact@v4
+        if: runner.os != 'Windows'
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}.${{ matrix.ext }}
+          path: ${{ matrix.artifact }}
+
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
 
   release:
     needs: build
@@ -136,6 +137,6 @@ jobs:
             --repo ${{ github.repository }} \
             --title "${{ github.ref_name }}" \
             --generate-notes \
-            blg-linux-amd64.tar.gz \
-            blg-macos-universal.tar.gz \
+            blg-linux-amd64 \
+            blg-macos-universal \
             blg-windows-amd64.zip

@@ -4,7 +4,7 @@
 ## and invalid values are all fatal. Extensionless URLs need explicit
 ## quotes: `extension = ""`.
 
-import std/[os, streams, parsecfg, strutils, sequtils, tables, sets]
+import std/[os, streams, parsecfg, sequtils, tables, sets]
 
 type
   Conf* = object

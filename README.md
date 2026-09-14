@@ -7,13 +7,13 @@ blg is a simple but enjoyable blog generator, especially for command line users.
 
 # Installation
 
-Prebuilt binaries for Linux, macOS and Windows:
+One binary, one line. Linux:
 
-    # Linux / macOS
-    curl -fsSL https://blg.capocasa.dev/install.sh | sh
+    mkdir -p ~/.local/bin && curl -fsL https://github.com/capocasa/blg/releases/latest/download/blg-linux-amd64 -o ~/.local/bin/blg && chmod +x ~/.local/bin/blg
 
-    # Windows (PowerShell)
-    irm https://blg.capocasa.dev/install.ps1 | iex
+macOS: same line with `blg-macos-universal` (universal binary).
+
+Windows: grab `blg-windows-amd64.zip` from the [releases](https://github.com/capocasa/blg/releases) — it carries the OpenSSL DLLs the updater needs.
 
 Release binaries update themselves in the background; set
 `BLG_AUTO_UPDATE=false` to opt out. From source (requires

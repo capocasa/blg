@@ -156,7 +156,7 @@
                                       <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Convert markdown source to HTML via nmark parser, with bare URLs autolinked (text and href are the same URL). Qualified call: a bare <tt class="docutils literal"><span class="pre"><span class="Identifier">text</span><span class="Operator">.</span><span class="Identifier">markdown</span></span></tt> would resolve to this proc itself (same name) and recurse infinitely.
+    Convert markdown source to HTML via nmark parser, with bare URLs autolinked (text and href are the same URL). Qualified call: a bare <tt class="docutils literal"><span class="pre"><span class="Identifier">text</span><span class="Operator">.</span><span class="Identifier">markdown</span></span></tt> would resolve to this proc itself (same name) and recurse infinitely. nmark terminates blocks with &quot;p&quot;, which is CRLF on Windows; normalize so output is identical on every platform.
     
   </dd>
 </div>
@@ -172,7 +172,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-14 12:34:59 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-14 15:01:49 UTC</small>
       </div>
     </div>
   </div>
