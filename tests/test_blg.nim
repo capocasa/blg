@@ -349,9 +349,11 @@ description = From the conf file
     createDir(TestDir / "from-cli")
 
     let blgPath = getCurrentDir() / "blg"
+    var env = newStringTable()
+    for k, v in envPairs(): env[k] = v
+    env["BLG_OUTPUT"] = "from-env"
     let (_, exitCode) = execCmdEx(blgPath & " -i pages -o from-cli",
-      workingDir = TestDir,
-      env = newStringTable({"BLG_OUTPUT": "from-env"}))
+      workingDir = TestDir, env = env)
     check exitCode == 0
     # Should use CLI output dir
     check fileExists(TestDir / "from-cli" / "index.html")

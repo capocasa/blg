@@ -326,7 +326,7 @@ proc renderMarkdown*(path: string, cacheDir: string, force = false): tuple[conte
 
   if not force and fileExists(cachePath):
     let cacheMtime = getFileInfo(cachePath).lastWriteTime
-    if cacheMtime > srcMtime:
+    if cacheMtime >= srcMtime:
       return (readFile(cachePath), false)
 
   let content = readFile(path).stripDateLine.insertReadMoreMarker

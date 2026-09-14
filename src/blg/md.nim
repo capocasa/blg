@@ -260,4 +260,6 @@ proc markdown*(text: string): string =
   ## autolinked (text and href are the same URL).
   ## Qualified call: a bare `text.markdown` would resolve to this proc
   ## itself (same name) and recurse infinitely.
-  result = nmark.markdown(autolinkUrls(text))
+  ## nmark terminates blocks with "\p", which is CRLF on Windows;
+  ## normalize so output is identical on every platform.
+  result = nmark.markdown(autolinkUrls(text)).replace("\c\l", "\n")
