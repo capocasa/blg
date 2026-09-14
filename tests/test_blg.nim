@@ -460,10 +460,14 @@ suite "Cache busting":
 
     let cacheFile = cache / "post1.html"
     let cacheMtime = getFileInfo(cacheFile).lastWriteTime
+    checkpoint("src   after build1: " & $getFileInfo(pages / "post1.md").lastWriteTime.toUnixFloat)
+    checkpoint("cache after build1: " & $cacheMtime.toUnixFloat)
 
     # Wait and rebuild without changes
     sleep(100)
     buildSite(pages, output, cache, perPage = 20)
+    checkpoint("src   after build2: " & $getFileInfo(pages / "post1.md").lastWriteTime.toUnixFloat)
+    checkpoint("cache after build2: " & $getFileInfo(cacheFile).lastWriteTime.toUnixFloat)
 
     # Cache file should not be modified
     check getFileInfo(cacheFile).lastWriteTime == cacheMtime
